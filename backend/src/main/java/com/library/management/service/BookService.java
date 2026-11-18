@@ -180,6 +180,27 @@ public class BookService {
                 .map(this::mapToResponse);
     }
 
+    @Transactional(readOnly = true)
+    public Page<BookResponseDTO> searchBooks(
+            String keyword,
+            Pageable pageable) {
+
+        if (keyword == null || keyword.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Search keyword cannot be empty");
+        }
+
+        String searchTerm = keyword.trim();
+
+        return bookRepository
+                .findByTitleContainingIgnoreCaseOrIsbnContainingIgnoreCaseOrPublisherContainingIgnoreCase(
+                        searchTerm,
+                        searchTerm,
+                        searchTerm,
+                        pageable)
+                .map(this::mapToResponse);
+    }
+
     // Convert Entity into Response DTO
     private BookResponseDTO mapToResponse(Book book) {
 

@@ -5,7 +5,10 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import java.util.Set;
+import java.util.HashSet;
 
+import com.library.management.entity.Author;
 import java.time.LocalDateTime;
 
 @Entity
@@ -57,4 +60,12 @@ public class Book {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    @ManyToMany
+    @JoinTable(name = "book_authors", joinColumns = @JoinColumn(name = "book_id"), inverseJoinColumns = @JoinColumn(name = "author_id"))
+    private Set<Author> authors = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(name = "book_categories", joinColumns = @JoinColumn(name = "book_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
+    private Set<Category> categories = new HashSet<>();
 }
