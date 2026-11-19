@@ -9,6 +9,7 @@ import com.library.management.exception.ResourceNotFoundException;
 
 import lombok.RequiredArgsConstructor;
 
+// import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import java.util.List;
 public class AuthorService {
 
     private final AuthorRepository authorRepository;
+    // private final AuthenticationManager authenticationManager;
 
     // Create Author
     public AuthorResponseDTO createAuthor(AuthorRequestDTO request) {

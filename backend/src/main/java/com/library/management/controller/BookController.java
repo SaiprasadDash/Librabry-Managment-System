@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -30,6 +31,7 @@ public class BookController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     @ResponseStatus(HttpStatus.CREATED)
     public BookResponseDTO addBook(
             @Valid @RequestBody BookRequestDTO request) {
@@ -48,6 +50,7 @@ public class BookController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     public BookResponseDTO updateBook(
             @PathVariable Long id,
             @Valid @RequestBody BookRequestDTO request) {
@@ -56,6 +59,7 @@ public class BookController {
     }
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     public BookResponseDTO patchBook(
             @PathVariable Long id,
             @Valid @RequestBody BookPatchDTO request) {
@@ -64,6 +68,7 @@ public class BookController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> deleteBook(
             @PathVariable Long id) {
 
