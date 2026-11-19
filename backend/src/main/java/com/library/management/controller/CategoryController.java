@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -25,6 +27,7 @@ public class CategoryController {
 
     // Create Category
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     public ResponseEntity<CategoryResponseDTO> createCategory(
             @Valid @RequestBody CategoryRequestDTO request) {
 
@@ -50,6 +53,7 @@ public class CategoryController {
 
     // Update Category
     @PutMapping("/{id:\\d+}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     public ResponseEntity<CategoryResponseDTO> updateCategory(
             @PathVariable Long id,
             @Valid @RequestBody CategoryRequestDTO request) {
@@ -60,6 +64,7 @@ public class CategoryController {
 
     // Delete Category
     @DeleteMapping("/{id:\\d+}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> deleteCategory(
             @PathVariable Long id) {
 

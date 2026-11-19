@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -24,6 +25,7 @@ public class AuthorController {
 
     // Create Author
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     public ResponseEntity<AuthorResponseDTO> createAuthor(
             @Valid @RequestBody AuthorRequestDTO request) {
 
@@ -49,6 +51,7 @@ public class AuthorController {
 
     // Update Author
     @PutMapping("/{id:\\d+}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
     public ResponseEntity<AuthorResponseDTO> updateAuthor(
             @PathVariable Long id,
             @Valid @RequestBody AuthorRequestDTO request) {
@@ -59,6 +62,7 @@ public class AuthorController {
 
     // Delete Author
     @DeleteMapping("/{id:\\d+}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> deleteAuthor(
             @PathVariable Long id) {
 
