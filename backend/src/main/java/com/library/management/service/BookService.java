@@ -211,6 +211,34 @@ public class BookService {
                                         request.totalCopies() - borrowedCopies);
                 }
 
+                // Update Authors only if authorIds is provided
+                if (request.authorIds() != null) {
+
+                        Set<Author> authors = new HashSet<>(
+                                        authorRepository.findAllById(request.authorIds()));
+
+                        if (authors.size() != request.authorIds().size()) {
+                                throw new ResourceNotFoundException(
+                                                "One or more authors were not found");
+                        }
+
+                        book.setAuthors(authors);
+                }
+
+                // Update Categories only if categoryIds is provided
+                if (request.categoryIds() != null) {
+
+                        Set<Category> categories = new HashSet<>(
+                                        categoryRepository.findAllById(request.categoryIds()));
+
+                        if (categories.size() != request.categoryIds().size()) {
+                                throw new ResourceNotFoundException(
+                                                "One or more categories were not found");
+                        }
+
+                        book.setCategories(categories);
+                }
+
                 Book updatedBook = bookRepository.save(book);
 
                 return mapToResponse(updatedBook);
