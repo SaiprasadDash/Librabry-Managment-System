@@ -1,12 +1,16 @@
 package com.library.management.service;
 
+import com.library.management.dto.AuthorResponseDTO;
 import com.library.management.dto.BookPatchDTO;
 import com.library.management.dto.BookRequestDTO;
 import com.library.management.dto.BookResponseDTO;
+import com.library.management.dto.CategoryResponseDTO;
 import com.library.management.entity.Book;
 import com.library.management.exception.DuplicateResourceException;
 import com.library.management.exception.ResourceNotFoundException;
+import com.library.management.repository.AuthorRepository;
 import com.library.management.repository.BookRepository;
+import com.library.management.repository.CategoryRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,14 +19,28 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.stream.Collectors;
+
+import com.library.management.entity.Author;
+import com.library.management.entity.Category;
+import java.util.Set;
+import java.util.HashSet;
 
 @Service
 public class BookService {
 
     private final BookRepository bookRepository;
+    private final AuthorRepository authorRepository;
+    private final CategoryRepository categoryRepository;
 
-    public BookService(BookRepository bookRepository) {
+    public BookService(
+            BookRepository bookRepository,
+            AuthorRepository authorRepository,
+            CategoryRepository categoryRepository) {
+
         this.bookRepository = bookRepository;
+        this.authorRepository = authorRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     // Add a new book
@@ -31,7 +49,7 @@ public class BookService {
 
         if (bookRepository.existsByIsbn(request.isbn())) {
             throw new DuplicateResourceException(
-                    "A book with this ISBN already exists");
+                    "Book already exists with ISBN: " + request.isbn());
         }
 
         Book book = new Book();
@@ -43,6 +61,34 @@ public class BookService {
         book.setPublishedYear(request.publishedYear());
         book.setTotalCopies(request.totalCopies());
         book.setAvailableCopies(request.totalCopies());
+
+        // Assign Authors
+        if (request.authorIds() != null && !request.authorIds().isEmpty()) {
+
+            Set<Author> authors = new HashSet<>(
+                    authorRepository.findAllById(request.authorIds()));
+
+            if (authors.size() != request.authorIds().size()) {
+                throw new ResourceNotFoundException(
+                        "One or more authors were not found");
+            }
+
+            book.setAuthors(authors);
+        }
+
+        // Assign Categories
+        if (request.categoryIds() != null && !request.categoryIds().isEmpty()) {
+
+            Set<Category> categories = new HashSet<>(
+                    categoryRepository.findAllById(request.categoryIds()));
+
+            if (categories.size() != request.categoryIds().size()) {
+                throw new ResourceNotFoundException(
+                        "One or more categories were not found");
+            }
+
+            book.setCategories(categories);
+        }
 
         Book savedBook = bookRepository.save(book);
 
@@ -213,6 +259,23 @@ public class BookService {
                 book.getPublishedYear(),
                 book.getTotalCopies(),
                 book.getAvailableCopies(),
+
+                book.getAuthors()
+                        .stream()
+                        .map(author -> new AuthorResponseDTO(
+                                author.getId(),
+                                author.getName(),
+                                author.getBiography()))
+                        .collect(Collectors.toSet()),
+
+                book.getCategories()
+                        .stream()
+                        .map(category -> new CategoryResponseDTO(
+                                category.getId(),
+                                category.getName(),
+                                category.getDescription()))
+                        .collect(Collectors.toSet()),
+
                 book.getCreatedAt(),
                 book.getUpdatedAt());
     }
