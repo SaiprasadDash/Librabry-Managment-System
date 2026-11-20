@@ -24,6 +24,11 @@ public class AdminInitializer {
 
         return args -> {
 
+            if (adminPassword == null || adminPassword.isBlank()) {
+                throw new IllegalStateException(
+                        "ADMIN_PASSWORD environment variable must be configured.");
+            }
+
             String adminEmail = "admin@gmail.com";
 
             if (userRepository.existsByEmail(adminEmail)) {
