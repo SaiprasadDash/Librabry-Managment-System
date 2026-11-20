@@ -78,4 +78,18 @@ public class GlobalExceptionHandler {
                 return ResponseEntity.badRequest().body(body);
         }
 
+        @ExceptionHandler(IllegalStateException.class)
+        public ResponseEntity<Map<String, Object>> handleIllegalState(
+                        IllegalStateException ex) {
+
+                Map<String, Object> response = Map.of(
+                                "timestamp", LocalDateTime.now(),
+                                "status", HttpStatus.CONFLICT.value(),
+                                "error", "Conflict",
+                                "message", ex.getMessage());
+
+                return ResponseEntity
+                                .status(HttpStatus.CONFLICT)
+                                .body(response);
+        }
 }
