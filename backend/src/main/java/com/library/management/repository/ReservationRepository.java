@@ -35,4 +35,6 @@ public interface ReservationRepository
                         Long bookId,
                         Long userId,
                         ReservationStatus status);
+
+        long countByBookIdAndStatus(Long bookId, ReservationStatus status);
 }

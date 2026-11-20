@@ -1,5 +1,6 @@
 package com.library.management.controller;
 
+import com.library.management.dto.ReservationCountResponseDTO;
 import com.library.management.dto.ReservationResponseDTO;
 import com.library.management.service.ReservationService;
 
@@ -52,5 +53,14 @@ public class ReservationController {
                 reservationId, authentication.getName());
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/book/{bookId}/count")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
+    public ResponseEntity<ReservationCountResponseDTO> getWaitingReservationCount(
+            @PathVariable Long bookId) {
+
+        return ResponseEntity.ok(
+                reservationService.getWaitingReservationCount(bookId));
     }
 }

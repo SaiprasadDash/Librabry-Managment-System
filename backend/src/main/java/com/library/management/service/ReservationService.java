@@ -1,5 +1,6 @@
 package com.library.management.service;
 
+import com.library.management.dto.ReservationCountResponseDTO;
 import com.library.management.dto.ReservationResponseDTO;
 import com.library.management.entity.Book;
 import com.library.management.entity.Reservation;
@@ -114,6 +115,21 @@ public class ReservationService {
         Reservation savedReservation = reservationRepository.save(reservation);
 
         return Optional.of(mapToResponse(savedReservation));
+    }
+
+    public ReservationCountResponseDTO getWaitingReservationCount(Long bookId) {
+
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
+
+        long count = reservationRepository.countByBookIdAndStatus(
+                bookId,
+                ReservationStatus.WAITING);
+
+        return new ReservationCountResponseDTO(
+                book.getId(),
+                book.getTitle(),
+                count);
     }
 
     private ReservationResponseDTO mapToResponse(Reservation reservation) {

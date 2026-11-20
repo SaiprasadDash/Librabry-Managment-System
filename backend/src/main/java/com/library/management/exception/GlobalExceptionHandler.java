@@ -11,6 +11,9 @@ import java.util.HashMap;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -92,4 +95,23 @@ public class GlobalExceptionHandler {
                                 .status(HttpStatus.CONFLICT)
                                 .body(response);
         }
+
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<Map<String, Object>> handleGeneralException(
+                        Exception ex) {
+
+                logger.error("Unexpected error occurred", ex);
+
+                Map<String, Object> response = Map.of(
+                                "timestamp", LocalDateTime.now(),
+                                "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                                "error", "Internal Server Error",
+                                "message", "Something went wrong. Please try again later.");
+
+                return ResponseEntity
+                                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(response);
+        }
+
+        private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 }
