@@ -1,20 +1,25 @@
 package com.library.management.service;
 
 import com.library.management.dto.BorrowRecordResponseDTO;
+import com.library.management.dto.ReservationResponseDTO;
 import com.library.management.entity.Book;
 import com.library.management.entity.BorrowRecord;
 import com.library.management.entity.BorrowStatus;
+import com.library.management.entity.Reservation;
+import com.library.management.entity.ReservationStatus;
 import com.library.management.entity.User;
 import com.library.management.exception.ResourceNotFoundException;
 import com.library.management.repository.BookRepository;
 import com.library.management.repository.BorrowRecordRepository;
 import com.library.management.repository.UserRepository;
+import com.library.management.repository.ReservationRepository;
 
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -25,7 +30,9 @@ public class BorrowRecordService {
         private final BorrowRecordRepository borrowRecordRepository;
         private final BookRepository bookRepository;
         private final UserRepository userRepository;
+        private final ReservationRepository reservationRepository;
         private final FineCalculationService fineCalculationService;
+        private final ReservationService reservationService;
 
         private static final int BORROW_DAYS = 14;
 
@@ -38,16 +45,25 @@ public class BorrowRecordService {
                 Book book = bookRepository.findById(bookId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
 
-                if (book.getAvailableCopies() <= 0) {
-                        throw new IllegalStateException("No copies of this book are currently available");
-                }
-
                 boolean alreadyBorrowed = borrowRecordRepository
                                 .existsByUserIdAndBookIdAndStatus(
                                                 user.getId(), bookId, BorrowStatus.BORROWED);
 
                 if (alreadyBorrowed) {
                         throw new IllegalStateException("You have already borrowed this book");
+                }
+
+                // Check whether this member has a reserved copy ready for pickup
+                Optional<Reservation> readyReservation = reservationRepository.findByBookIdAndUserIdAndStatus(
+                                bookId,
+                                user.getId(),
+                                ReservationStatus.READY_FOR_PICKUP);
+
+                boolean isReservedBook = readyReservation.isPresent();
+
+                // Normal borrowing is allowed only when copies are available
+                if (!isReservedBook && book.getAvailableCopies() <= 0) {
+                        throw new IllegalStateException("No copies of this book are currently available");
                 }
 
                 BorrowRecord record = new BorrowRecord();
@@ -58,9 +74,15 @@ public class BorrowRecordService {
                 record.setDueDate(LocalDate.now().plusDays(BORROW_DAYS));
                 record.setStatus(BorrowStatus.BORROWED);
 
-                book.setAvailableCopies(book.getAvailableCopies() - 1);
-
-                bookRepository.save(book);
+                // Reserved copies are already excluded from availableCopies
+                if (isReservedBook) {
+                        Reservation reservation = readyReservation.get();
+                        reservation.setStatus(ReservationStatus.FULFILLED);
+                        reservationRepository.save(reservation);
+                } else {
+                        book.setAvailableCopies(book.getAvailableCopies() - 1);
+                        bookRepository.save(book);
+                }
 
                 BorrowRecord savedRecord = borrowRecordRepository.save(record);
 
@@ -88,9 +110,16 @@ public class BorrowRecordService {
                 record.setStatus(BorrowStatus.RETURNED);
 
                 Book book = record.getBook();
-                book.setAvailableCopies(book.getAvailableCopies() + 1);
 
-                bookRepository.save(book);
+                // Assign the returned copy to the next waiting member
+                Optional<ReservationResponseDTO> assignedReservation = reservationService
+                                .assignNextReservation(book.getId());
+
+                if (assignedReservation.isEmpty()) {
+                        // Nobody is waiting, so make the copy available
+                        book.setAvailableCopies(book.getAvailableCopies() + 1);
+                        bookRepository.save(book);
+                }
 
                 BorrowRecord savedRecord = borrowRecordRepository.save(record);
 
@@ -107,23 +136,6 @@ public class BorrowRecordService {
                                 .stream()
                                 .map(this::mapToResponse)
                                 .toList();
-        }
-
-        private BorrowRecordResponseDTO mapToResponse(BorrowRecord record) {
-
-                return new BorrowRecordResponseDTO(
-                                record.getId(),
-                                record.getBook().getId(),
-                                record.getBook().getTitle(),
-                                record.getBook().getIsbn(),
-                                record.getUser().getId(),
-                                record.getUser().getName(),
-                                record.getUser().getEmail(),
-                                record.getBorrowDate(),
-                                record.getDueDate(),
-                                record.getReturnDate(),
-                                record.getStatus(),
-                                fineCalculationService.calculateFine(record));
         }
 
         @Transactional(readOnly = true)
@@ -146,5 +158,22 @@ public class BorrowRecordService {
                                 .stream()
                                 .map(this::mapToResponse)
                                 .toList();
+        }
+
+        private BorrowRecordResponseDTO mapToResponse(BorrowRecord record) {
+
+                return new BorrowRecordResponseDTO(
+                                record.getId(),
+                                record.getBook().getId(),
+                                record.getBook().getTitle(),
+                                record.getBook().getIsbn(),
+                                record.getUser().getId(),
+                                record.getUser().getName(),
+                                record.getUser().getEmail(),
+                                record.getBorrowDate(),
+                                record.getDueDate(),
+                                record.getReturnDate(),
+                                record.getStatus(),
+                                fineCalculationService.calculateFine(record));
         }
 }
