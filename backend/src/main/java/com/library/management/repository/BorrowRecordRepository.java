@@ -31,4 +31,6 @@ public interface BorrowRecordRepository
                         Long userId,
                         BorrowStatus status,
                         LocalDate date);
+
+        boolean existsByBookId(Long bookId);
 }

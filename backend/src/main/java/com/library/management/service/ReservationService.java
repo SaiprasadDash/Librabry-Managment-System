@@ -24,124 +24,125 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReservationService {
 
-    private final ReservationRepository reservationRepository;
-    private final BookRepository bookRepository;
-    private final UserRepository userRepository;
+        private final ReservationRepository reservationRepository;
+        private final BookRepository bookRepository;
+        private final UserRepository userRepository;
 
-    @Transactional
-    public ReservationResponseDTO reserveBook(Long bookId, String email) {
+        @Transactional
+        public ReservationResponseDTO reserveBook(Long bookId, String email) {
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
+                Book book = bookRepository.findById(bookId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
 
-        if (book.getAvailableCopies() > 0) {
-            throw new IllegalStateException(
-                    "This book is currently available. You can borrow it directly.");
+                if (book.getAvailableCopies() > 0) {
+                        throw new IllegalStateException(
+                                        "This book is currently available. You can borrow it directly.");
+                }
+
+                boolean alreadyReserved = reservationRepository
+                                .existsByUserIdAndBookIdAndStatusIn(
+                                                user.getId(), bookId,
+                                                List.of(ReservationStatus.WAITING, ReservationStatus.READY_FOR_PICKUP));
+
+                if (alreadyReserved) {
+                        throw new IllegalStateException(
+                                        "You have already reserved this book.");
+                }
+
+                Reservation reservation = new Reservation();
+                reservation.setUser(user);
+                reservation.setBook(book);
+                reservation.setStatus(ReservationStatus.WAITING);
+
+                Reservation savedReservation = reservationRepository.save(reservation);
+
+                return mapToResponse(savedReservation);
         }
 
-        boolean alreadyReserved = reservationRepository
-                .existsByUserIdAndBookIdAndStatus(
-                        user.getId(), bookId, ReservationStatus.WAITING);
+        @Transactional(readOnly = true)
+        public List<ReservationResponseDTO> getMyReservations(String email) {
 
-        if (alreadyReserved) {
-            throw new IllegalStateException(
-                    "You have already reserved this book.");
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+                return reservationRepository.findByUserId(user.getId())
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
         }
 
-        Reservation reservation = new Reservation();
-        reservation.setUser(user);
-        reservation.setBook(book);
-        reservation.setStatus(ReservationStatus.WAITING);
+        @Transactional
+        public ReservationResponseDTO cancelReservation(Long reservationId, String email) {
 
-        Reservation savedReservation = reservationRepository.save(reservation);
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        return mapToResponse(savedReservation);
-    }
+                Reservation reservation = reservationRepository
+                                .findByIdAndUserId(reservationId, user.getId())
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Reservation not found"));
 
-    @Transactional(readOnly = true)
-    public List<ReservationResponseDTO> getMyReservations(String email) {
+                if (reservation.getStatus() != ReservationStatus.WAITING) {
+                        throw new IllegalStateException(
+                                        "Only waiting reservations can be cancelled");
+                }
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                reservation.setStatus(ReservationStatus.CANCELLED);
 
-        return reservationRepository.findByUserId(user.getId())
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
+                Reservation savedReservation = reservationRepository.save(reservation);
 
-    @Transactional
-    public ReservationResponseDTO cancelReservation(Long reservationId, String email) {
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        Reservation reservation = reservationRepository
-                .findByIdAndUserId(reservationId, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Reservation not found"));
-
-        if (reservation.getStatus() != ReservationStatus.WAITING) {
-            throw new IllegalStateException(
-                    "Only waiting reservations can be cancelled");
+                return mapToResponse(savedReservation);
         }
 
-        reservation.setStatus(ReservationStatus.CANCELLED);
+        @Transactional
+        public Optional<ReservationResponseDTO> assignNextReservation(Long bookId) {
 
-        Reservation savedReservation = reservationRepository.save(reservation);
+                List<Reservation> reservations = reservationRepository.findByBookIdAndStatusOrderByReservationDateAsc(
+                                bookId,
+                                ReservationStatus.WAITING,
+                                PageRequest.of(0, 1));
 
-        return mapToResponse(savedReservation);
-    }
+                if (reservations.isEmpty()) {
+                        return Optional.empty();
+                }
 
-    @Transactional
-    public Optional<ReservationResponseDTO> assignNextReservation(Long bookId) {
+                Reservation reservation = reservations.get(0);
 
-        List<Reservation> reservations = reservationRepository.findByBookIdAndStatusOrderByReservationDateAsc(
-                bookId,
-                ReservationStatus.WAITING,
-                PageRequest.of(0, 1));
+                reservation.setStatus(ReservationStatus.READY_FOR_PICKUP);
 
-        if (reservations.isEmpty()) {
-            return Optional.empty();
+                Reservation savedReservation = reservationRepository.save(reservation);
+
+                return Optional.of(mapToResponse(savedReservation));
         }
 
-        Reservation reservation = reservations.get(0);
+        public ReservationCountResponseDTO getWaitingReservationCount(Long bookId) {
 
-        reservation.setStatus(ReservationStatus.READY_FOR_PICKUP);
+                Book book = bookRepository.findById(bookId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
 
-        Reservation savedReservation = reservationRepository.save(reservation);
+                long count = reservationRepository.countByBookIdAndStatus(
+                                bookId,
+                                ReservationStatus.WAITING);
 
-        return Optional.of(mapToResponse(savedReservation));
-    }
+                return new ReservationCountResponseDTO(
+                                book.getId(),
+                                book.getTitle(),
+                                count);
+        }
 
-    public ReservationCountResponseDTO getWaitingReservationCount(Long bookId) {
+        private ReservationResponseDTO mapToResponse(Reservation reservation) {
 
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
-
-        long count = reservationRepository.countByBookIdAndStatus(
-                bookId,
-                ReservationStatus.WAITING);
-
-        return new ReservationCountResponseDTO(
-                book.getId(),
-                book.getTitle(),
-                count);
-    }
-
-    private ReservationResponseDTO mapToResponse(Reservation reservation) {
-
-        return new ReservationResponseDTO(
-                reservation.getId(),
-                reservation.getBook().getId(),
-                reservation.getBook().getTitle(),
-                reservation.getUser().getId(),
-                reservation.getUser().getName(),
-                reservation.getUser().getEmail(),
-                reservation.getStatus(),
-                reservation.getReservationDate());
-    }
+                return new ReservationResponseDTO(
+                                reservation.getId(),
+                                reservation.getBook().getId(),
+                                reservation.getBook().getTitle(),
+                                reservation.getUser().getId(),
+                                reservation.getUser().getName(),
+                                reservation.getUser().getEmail(),
+                                reservation.getStatus(),
+                                reservation.getReservationDate());
+        }
 }

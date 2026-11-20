@@ -10,7 +10,9 @@ import com.library.management.exception.DuplicateResourceException;
 import com.library.management.exception.ResourceNotFoundException;
 import com.library.management.repository.AuthorRepository;
 import com.library.management.repository.BookRepository;
+import com.library.management.repository.BorrowRecordRepository;
 import com.library.management.repository.CategoryRepository;
+import com.library.management.repository.ReservationRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,15 +34,21 @@ public class BookService {
         private final BookRepository bookRepository;
         private final AuthorRepository authorRepository;
         private final CategoryRepository categoryRepository;
+        private final BorrowRecordRepository borrowRecordRepository;
+        private final ReservationRepository reservationRepository;
 
         public BookService(
                         BookRepository bookRepository,
                         AuthorRepository authorRepository,
-                        CategoryRepository categoryRepository) {
+                        CategoryRepository categoryRepository,
+                        BorrowRecordRepository borrowRecordRepository,
+                        ReservationRepository reservationRepository) {
 
                 this.bookRepository = bookRepository;
                 this.authorRepository = authorRepository;
                 this.categoryRepository = categoryRepository;
+                this.borrowRecordRepository = borrowRecordRepository;
+                this.reservationRepository = reservationRepository;
         }
 
         // Add a new book
@@ -251,6 +259,16 @@ public class BookService {
                 Book book = bookRepository.findById(id)
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Book not found with ID: " + id));
+
+                if (borrowRecordRepository.existsByBookId(id)) {
+                        throw new IllegalStateException(
+                                        "Cannot delete this book because borrowing history exists.");
+                }
+
+                if (reservationRepository.existsByBookId(id)) {
+                        throw new IllegalStateException(
+                                        "Cannot delete this book because reservation history exists.");
+                }
 
                 bookRepository.delete(book);
         }

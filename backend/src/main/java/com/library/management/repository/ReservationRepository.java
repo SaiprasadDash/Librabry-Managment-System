@@ -24,6 +24,11 @@ public interface ReservationRepository
                         Long bookId,
                         ReservationStatus status);
 
+        boolean existsByUserIdAndBookIdAndStatusIn(
+                        Long userId,
+                        Long bookId,
+                        List<ReservationStatus> statuses);
+
         Optional<Reservation> findByIdAndUserId(Long id, Long userId);
 
         List<Reservation> findByBookIdAndStatusOrderByReservationDateAsc(
@@ -37,4 +42,6 @@ public interface ReservationRepository
                         ReservationStatus status);
 
         long countByBookIdAndStatus(Long bookId, ReservationStatus status);
+
+        boolean existsByBookId(Long bookId);
 }
