@@ -1,20 +1,65 @@
 # Library Management System
 
-A backend-focused Library Management System built using **Java 21, Spring Boot, Spring Data JPA, and MySQL**. The application provides RESTful APIs for managing books, including CRUD operations, input validation, exception handling, pagination, and sorting.
+A full-featured backend-focused Library Management System built using **Java 21, Spring Boot, Spring Security, Spring Data JPA, and MySQL**.
 
-> **Project Status:** Backend development in progress.
+The application provides REST APIs for managing books, authors, categories, users, borrowing, returns, fines, and reservations. It includes JWT authentication, role-based authorization, validation, pagination, and centralized exception handling.
 
 ## Features
 
-- **Book Management:** Create, retrieve, update, partially update, and delete books.
-- **RESTful APIs:** Structured REST endpoints using Spring Boot.
-- **Database Integration:** MySQL database integration using Spring Data JPA and Hibernate.
-- **DTO Architecture:** Separate request and response DTOs.
-- **Input Validation:** Request validation using Jakarta Bean Validation.
-- **Global Exception Handling:** Centralized handling of application exceptions.
-- **Pagination:** Retrieve books in configurable pages.
-- **Sorting:** Sort records by database fields using Spring Data Pageable.
-- **Layered Architecture:** Separation of controllers, services, repositories, entities, and DTOs.
+### Book Management
+- Create, retrieve, update, partially update, and delete books.
+- ISBN uniqueness validation.
+- Manage book copies and availability.
+- Associate books with multiple authors and categories.
+- Prevent deletion when borrowing or reservation history exists.
+
+### Author and Category Management
+- Create, retrieve, update, and delete authors.
+- Create, retrieve, update, and delete categories.
+- Associate authors and categories with books.
+
+### Authentication and Authorization
+- User registration and login.
+- JWT-based authentication.
+- BCrypt password hashing.
+- Role-based access control:
+  - **ADMIN:** Administrative operations and librarian management.
+  - **LIBRARIAN:** Library management operations.
+  - **MEMBER:** Borrowing, returning, and reservations.
+- Public registration always creates MEMBER accounts.
+- Only administrators can create librarian accounts.
+- Separate HTTP 401 and 403 responses.
+
+### Borrowing and Returns
+- Borrow available books.
+- Prevent duplicate active borrowing of the same book by a member.
+- Automatically calculate due dates (14 days).
+- Return borrowed books.
+- View personal borrowing history.
+- View overdue books.
+- Maintain available-copy counts.
+
+### Fine Calculation
+- Automatically calculate overdue fines.
+- Fine rate: ₹5 per overdue day.
+- Include fine amounts in borrowing responses.
+
+### Reservation Management
+- Reserve books when no copies are available.
+- Prevent duplicate active reservations.
+- Cancel waiting reservations.
+- FIFO reservation assignment.
+- Mark reservations as ready for pickup.
+- Fulfil reservations when the member borrows the assigned book.
+- View waiting reservation counts (ADMIN/LIBRARIAN).
+
+### Other Features
+- DTO-based request and response handling.
+- Jakarta Bean Validation.
+- Centralized exception handling.
+- Pagination and sorting.
+- Book search and filtering.
+- Layered architecture.
 
 ## Tech Stack
 
@@ -23,10 +68,12 @@ A backend-focused Library Management System built using **Java 21, Spring Boot, 
 | Java 21 | Programming language |
 | Spring Boot 4.1.2 | Backend framework |
 | Spring Web MVC | REST API development |
+| Spring Security | Authentication and authorization |
 | Spring Data JPA | Database operations |
 | Hibernate | ORM |
 | MySQL | Relational database |
-| Spring Security | Security foundation |
+| JWT (JJWT) | Token-based authentication |
+| BCrypt | Password hashing |
 | Jakarta Validation | Input validation |
 | Gradle | Build and dependency management |
 | Lombok | Boilerplate reduction |
@@ -36,52 +83,26 @@ A backend-focused Library Management System built using **Java 21, Spring Boot, 
 
 ```text
 Librabry-Managment-System/
-│
 ├── backend/
 │   ├── src/
 │   │   ├── main/
 │   │   │   ├── java/com/library/management/
 │   │   │   │   ├── config/
-│   │   │   │   │   └── SecurityConfig.java
-│   │   │   │   │
 │   │   │   │   ├── controller/
-│   │   │   │   │   ├── BookController.java
-│   │   │   │   │   └── HealthController.java
-│   │   │   │   │
 │   │   │   │   ├── dto/
-│   │   │   │   │   ├── BookRequestDTO.java
-│   │   │   │   │   ├── BookResponseDTO.java
-│   │   │   │   │   └── BookPatchDTO.java
-│   │   │   │   │
 │   │   │   │   ├── entity/
-│   │   │   │   │   └── Book.java
-│   │   │   │   │
 │   │   │   │   ├── exception/
-│   │   │   │   │   ├── DuplicateResourceException.java
-│   │   │   │   │   ├── ResourceNotFoundException.java
-│   │   │   │   │   └── GlobalExceptionHandler.java
-│   │   │   │   │
 │   │   │   │   ├── repository/
-│   │   │   │   │   └── BookRepository.java
-│   │   │   │   │
-│   │   │   │   ├── service/
-│   │   │   │   │   └── BookService.java
-│   │   │   │   │
-│   │   │   │   └── LibraryManagementApplication.java
-│   │   │   │
+│   │   │   │   └── service/
 │   │   │   └── resources/
 │   │   │       └── application.properties
-│   │   │
-│   │   ├── test/
-│   │   ├── build.gradle
-│   │   ├── settings.gradle
-│   │   ├── gradlew
-│   │   └── gradlew.bat
-│   │
-│   └── .gitignore
-│
+│   │   └── test/
+│   ├── gradle/
+│   ├── build.gradle
+│   ├── settings.gradle
+│   └── gradlew.bat
 ├── .gitignore
-└── README.md
+└── readme.md
 ```
 
 ## Application Architecture
@@ -104,28 +125,22 @@ Client (Postman / Frontend)
         MySQL
 ```
 
-**Controller Layer:** Handles HTTP requests and responses.
-
-**Service Layer:** Contains business logic and application rules.
-
-**Repository Layer:** Communicates with the database using Spring Data JPA.
-
-**Entity Layer:** Represents database tables.
-
-**DTO Layer:** Controls the data exchanged between the client and server.
-
-**Exception Layer:** Handles application errors centrally.
+- **Controller:** Handles HTTP requests and responses.
+- **Service:** Contains business logic and application rules.
+- **Repository:** Handles database operations using Spring Data JPA.
+- **Entity:** Represents database tables.
+- **DTO:** Controls data exchanged between client and server.
+- **Exception:** Provides centralized error handling.
+- **Config:** Contains security and application configuration.
 
 ## Getting Started
 
 ### Prerequisites
 
-Install the following before running the application:
-
-- Java Development Kit (JDK) 21
+- JDK 21
 - MySQL
 - Git
-- Postman (for API testing)
+- Postman
 
 ### 1. Clone the repository
 
@@ -141,38 +156,49 @@ cd Librabry-Managment-System/backend
 
 ### 3. Create the database
 
-Open MySQL and execute:
+Execute this SQL command in MySQL:
 
 ```sql
 CREATE DATABASE library_management;
 ```
 
-Create a dedicated database user or configure an existing MySQL user with the necessary permissions.
+Configure your MySQL username and ensure that the database user has the required permissions.
 
 ### 4. Configure environment variables
 
-The application reads the database password from the `DB_PASSWORD` environment variable.
+The application requires three environment variables:
 
-On Windows PowerShell:
+- `DB_PASSWORD`: MySQL database password.
+- `JWT_SECRET`: Secret used to sign JWT tokens. Use a strong random secret of at least 32 bytes for HS256.
+- `ADMIN_PASSWORD`: Initial administrator password.
 
-```powershell
-$env:DB_PASSWORD="your_database_password"
+On **Windows CMD**, configure them in the terminal before starting the application:
+
+```cmd
+set DB_PASSWORD=your_mysql_password
+set JWT_SECRET=your_long_random_secret_at_least_32_characters
+set ADMIN_PASSWORD=your_strong_admin_password
 ```
 
-On Linux/macOS:
+These values are examples. Use your own secure values and never commit actual secrets to GitHub.
 
-```bash
-export DB_PASSWORD="your_database_password"
+The initial administrator account uses:
+
+```text
+Email: admin@gmail.com
+Password: Value configured in ADMIN_PASSWORD
 ```
 
-Make sure the username and database connection URL in `application.properties` match your MySQL configuration.
+The administrator initializer creates this account only if it does not already exist.
+
+On PowerShell, use `$env:VARIABLE_NAME="value"` instead of the CMD `set` syntax.
 
 ### 5. Run the application
 
 On Windows:
 
-```powershell
-.\gradlew.bat bootRun
+```cmd
+gradlew.bat bootRun
 ```
 
 On Linux/macOS:
@@ -187,9 +213,9 @@ The backend runs at:
 http://localhost:8081
 ```
 
-Hibernate currently manages the database schema using the configured JPA settings.
+**Note:** CMD environment variables set using `set` apply only to that terminal session. Configure them again when opening a new terminal.
 
-## API Documentation
+## API Overview
 
 Base URL:
 
@@ -197,145 +223,122 @@ Base URL:
 http://localhost:8081/api
 ```
 
+| Module | Base endpoint | Description |
+|---|---|---|
+| Authentication | `/auth` | Registration and login |
+| Books | `/books` | Book management |
+| Authors | `/authors` | Author management |
+| Categories | `/categories` | Category management |
+| Users | `/users` | Librarian account creation |
+| Borrowings | `/borrowings` | Borrowing, returning, and history |
+| Reservations | `/reservations` | Reservation management |
+
+### Authentication APIs
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/auth/register` | Register a MEMBER |
+| POST | `/auth/login` | Login and receive JWT |
+
 ### Book APIs
 
-| HTTP Method | Endpoint | Description |
+| Method | Endpoint | Description |
 |---|---|---|
-| POST | `/books` | Add a new book |
-| GET | `/books` | Retrieve all books |
-| GET | `/books/{id}` | Retrieve a book by ID |
-| PUT | `/books/{id}` | Update an entire book |
+| POST | `/books` | Create a book |
+| GET | `/books` | Retrieve books |
+| GET | `/books/{id}` | Retrieve a book |
+| PUT | `/books/{id}` | Update a book |
 | PATCH | `/books/{id}` | Partially update a book |
 | DELETE | `/books/{id}` | Delete a book |
-| GET | `/books/page` | Retrieve books with pagination and sorting |
+| GET | `/books/page` | Paginated and sorted books |
 
-### Add a Book
+### Borrowing APIs
 
-**POST** `/api/books`
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/borrowings/{bookId}` | Borrow a book |
+| PUT | `/borrowings/{borrowId}/return` | Return a book |
+| GET | `/borrowings/my` | View personal borrowing history |
+| GET | `/borrowings/my/overdue` | View personal overdue books |
+| GET | `/borrowings/overdue` | View all overdue books (staff) |
 
-Request body:
+### Reservation APIs
 
-```json
-{
-  "title": "Clean Code",
-  "isbn": "9780132350884",
-  "description": "A handbook of agile software craftsmanship",
-  "publisher": "Prentice Hall",
-  "publishedYear": 2008,
-  "totalCopies": 10
-}
-```
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/reservations/{bookId}` | Reserve a book |
+| GET | `/reservations/my` | View personal reservations |
+| PUT | `/reservations/{reservationId}/cancel` | Cancel a reservation |
+| GET | `/reservations/book/{bookId}/count` | View waiting count (staff) |
 
-### Retrieve All Books
+### Librarian Management API
 
-**GET** `/api/books`
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/users/librarians` | Create a librarian (ADMIN only) |
 
-### Retrieve Book by ID
-
-**GET** `/api/books/1`
-
-### Update a Book
-
-**PUT** `/api/books/1`
-
-PUT replaces the book's editable details using the supplied request data.
-
-### Partially Update a Book
-
-**PATCH** `/api/books/1`
-
-Example:
-
-```json
-{
-  "title": "Clean Code - Updated Edition"
-}
-```
-
-### Delete a Book
-
-**DELETE** `/api/books/1`
-
-### Pagination
-
-**GET** `/api/books/page?page=0&size=5`
-
-### Sorting
-
-Sort by title in ascending order:
+All protected endpoints require a valid JWT in the Authorization header:
 
 ```text
-GET /api/books/page?page=0&size=5&sort=title,asc
+Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
-Sort by publication year in descending order:
-
-```text
-GET /api/books/page?page=0&size=5&sort=publishedYear,desc
-```
-
-The paginated response includes:
-
-- `content`
-- `totalElements`
-- `totalPages`
-- `size`
-- `number`
-- `first`
-- `last`
+Access is controlled by the user's assigned role.
 
 ## Error Handling
 
-The application uses centralized exception handling through `@RestControllerAdvice`.
+The application uses centralized exception handling through `@RestControllerAdvice` and Spring Security handlers.
 
 | HTTP Status | Description |
 |---|---|
-| 400 Bad Request | Invalid request data |
-| 404 Not Found | Requested book does not exist |
-| 409 Conflict | Duplicate ISBN |
-| 500 Internal Server Error | Unexpected server error |
+| 400 | Bad request or validation failure |
+| 401 | Authentication required or invalid |
+| 403 | Authenticated user lacks permission |
+| 404 | Resource not found |
+| 409 | Business rule conflict |
+| 500 | Unexpected server error |
 
-Validation errors include field-specific messages to help identify invalid request data.
+Unexpected server errors are logged while a generic message is returned to the client.
 
-## Current Development Status
+## Development Status
 
 - [x] Spring Boot project setup
 - [x] MySQL database integration
-- [x] Book entity and repository
 - [x] Layered backend architecture
 - [x] Book CRUD operations
-- [x] Request and response DTOs
-- [x] Input validation
+- [x] Author and category management
+- [x] DTOs and input validation
 - [x] Global exception handling
-- [x] Pagination
-- [x] Sorting support
-- [ ] Book search and filtering
-- [ ] Author and category management
-- [ ] User registration and login
-- [ ] JWT authentication and role-based authorization
-- [ ] Book borrowing and returning
-- [ ] Fine calculation and reservation management
-- [ ] Automated unit and integration testing
-- [ ] Swagger / OpenAPI documentation
+- [x] Pagination, sorting, and search
+- [x] JWT authentication
+- [x] Role-based authorization
+- [x] BCrypt password hashing
+- [x] Borrowing and returning
+- [x] Overdue tracking
+- [x] Fine calculation
+- [x] Reservation management
+- [x] FIFO reservation assignment
+- [x] Safe book deletion checks
+- [x] Postman API testing
 - [ ] React frontend
-- [ ] Docker and deployment
+- [ ] AI-powered book recommendations
+- [ ] Semantic book search
+- [ ] RAG-based library assistant
 
 ## Future Improvements
 
-The planned direction is to evolve this application into a complete library management platform with:
-
-- Role-based access for administrators, librarians, and students.
-- Secure authentication using JWT.
-- Book borrowing and return workflows.
-- Automatic due-date and fine calculations.
-- Advanced search, filtering, and sorting.
-- Transaction management and concurrency handling.
-- API documentation and automated testing.
-- Containerization and CI/CD integration.
+- React-based frontend for different user roles.
+- AI-powered personalized book recommendations.
+- Semantic search using vector embeddings.
+- RAG-based library assistant for catalog questions.
+- Fine payment tracking.
+- Improved concurrency handling for borrowing and reservations.
+- Database migration management.
+- Expanded automated unit and integration testing.
 
 ## Contributing
 
-Contributions, suggestions, and feedback are welcome.
+Suggestions and contributions are welcome.
 
 1. Fork the repository.
 2. Create a feature branch.
@@ -347,8 +350,8 @@ Contributions, suggestions, and feedback are welcome.
 
 **Sai Prasad Dash**
 
-- GitHub: [@SaiprasadDash](https://github.com/SaiprasadDash)
+GitHub: [@SaiprasadDash](https://github.com/SaiprasadDash)
 
 ---
 
-*This project is actively under development as a practical exploration of backend engineering and enterprise application development.*
+*Built as a practical project to explore backend engineering, REST API development, database management, and secure application design.*
