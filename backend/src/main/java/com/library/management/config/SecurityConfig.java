@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -19,10 +20,13 @@ import jakarta.servlet.http.HttpServletResponse;
 public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final CorsConfigurationSource corsConfigurationSource;
 
         public SecurityConfig(
-                        JwtAuthenticationFilter jwtAuthenticationFilter) {
+                        JwtAuthenticationFilter jwtAuthenticationFilter,
+                        CorsConfigurationSource corsConfigurationSource) {
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+                this.corsConfigurationSource = corsConfigurationSource;
         }
 
         @Bean
@@ -31,6 +35,7 @@ public class SecurityConfig {
 
                 http
                                 .csrf(csrf -> csrf.disable())
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource))
 
                                 .exceptionHandling(exception -> exception
                                                 // No token or invalid token -> 401
@@ -46,6 +51,7 @@ public class SecurityConfig {
                                                 .accessDeniedHandler((request, response, accessDeniedException) -> {
                                                         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                                                         response.setContentType("application/json");
+                                                        response.setCharacterEncoding("UTF-8");
                                                         response.getWriter().write(
                                                                         "{\"status\":403,\"error\":\"Forbidden\","
                                                                                         + "\"message\":\"You do not have permission\"}");
@@ -63,8 +69,11 @@ public class SecurityConfig {
                                 .httpBasic(basic -> basic.disable())
 
                                 .addFilterBefore(
+                                                new LoginRateLimitFilter(),
+                                                UsernamePasswordAuthenticationFilter.class)
+                                .addFilterAfter(
                                                 jwtAuthenticationFilter,
-                                                UsernamePasswordAuthenticationFilter.class);
+                                                LoginRateLimitFilter.class);
 
                 return http.build();
         }

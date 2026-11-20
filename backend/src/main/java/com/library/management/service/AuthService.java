@@ -13,6 +13,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Locale;
+
 @Service
 public class AuthService {
 
@@ -35,16 +37,17 @@ public class AuthService {
 
         public AuthResponseDTO register(RegisterRequestDTO request) {
 
-                if (userRepository.existsByEmail(request.getEmail())) {
+                String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+
+                if (userRepository.existsByEmail(email)) {
                         throw new IllegalArgumentException(
                                         "Email is already registered");
                 }
 
                 User user = new User();
                 user.setName(request.getName());
-                user.setEmail(request.getEmail());
-                user.setPassword(
-                                passwordEncoder.encode(request.getPassword()));
+                user.setEmail(email);
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
 
                 // Public registration always creates MEMBER accounts.
                 user.setRole(Role.MEMBER);
@@ -63,12 +66,14 @@ public class AuthService {
 
         public AuthResponseDTO login(LoginRequestDTO request) {
 
+                String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+
                 authenticationManager.authenticate(
                                 new UsernamePasswordAuthenticationToken(
-                                                request.getEmail(),
+                                                email,
                                                 request.getPassword()));
 
-                User user = userRepository.findByEmail(request.getEmail())
+                User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
                 String token = jwtService.generateToken(user.getEmail());

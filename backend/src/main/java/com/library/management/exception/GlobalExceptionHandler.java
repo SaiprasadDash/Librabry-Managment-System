@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.security.core.AuthenticationException;
 import java.util.HashMap;
 
 import java.time.LocalDateTime;
@@ -111,6 +112,19 @@ public class GlobalExceptionHandler {
                 return ResponseEntity
                                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                                 .body(response);
+        }
+
+        @ExceptionHandler(AuthenticationException.class)
+        public ResponseEntity<Map<String, Object>> handleAuthenticationException(
+                        AuthenticationException ex) {
+
+                Map<String, Object> response = Map.of(
+                                "timestamp", LocalDateTime.now(),
+                                "status", HttpStatus.UNAUTHORIZED.value(),
+                                "error", "Unauthorized",
+                                "message", "Invalid email or password");
+
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
 
         private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
