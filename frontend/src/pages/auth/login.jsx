@@ -47,11 +47,6 @@ function Login() {
                 password: form.password,
             });
 
-            // Store auth data first
-            localStorage.setItem("token", result.token);
-            localStorage.setItem("email", result.email);
-            localStorage.setItem("role", result.role);
-
             // Update auth context
             login(result);
 
