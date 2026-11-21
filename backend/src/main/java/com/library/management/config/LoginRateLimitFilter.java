@@ -17,7 +17,7 @@ public class LoginRateLimitFilter extends OncePerRequestFilter {
 
     private static final int MAX_ATTEMPTS = 5;
 
-    private static final long WINDOW_MILLIS = Duration.ofMinutes(15).toMillis();
+    private static final long WINDOW_MILLIS = Duration.ofMinutes(5).toMillis();
 
     private final ConcurrentHashMap<String, AttemptWindow> attempts = new ConcurrentHashMap<>();
 
@@ -51,7 +51,7 @@ public class LoginRateLimitFilter extends OncePerRequestFilter {
                 response.setContentType("application/json");
                 response.setCharacterEncoding("UTF-8");
                 response.getWriter().write(
-                        "{\"message\":\"Too many login attempts. Please try again after 15 minutes.\"}");
+                        "{\"message\":\"Too many login attempts. Please try again after 5 minutes.\"}");
                 return;
             }
 

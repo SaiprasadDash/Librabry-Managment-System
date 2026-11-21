@@ -22,7 +22,6 @@ public class UserController {
     public UserController(UserService userService) {
         this.userService = userService;
     }
-
     @PostMapping("/librarians")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> createLibrarian(
