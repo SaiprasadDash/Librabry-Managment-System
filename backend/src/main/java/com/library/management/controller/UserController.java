@@ -69,4 +69,10 @@ public class UserController {
 
         return ResponseEntity.ok(Map.of("message", message));
     }
+
+    @GetMapping("/members")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LIBRARIAN')")
+    public ResponseEntity<List<UserResponseDTO>> getAllMembers() {
+        return ResponseEntity.ok(userService.getAllMembers());
+    }
 }

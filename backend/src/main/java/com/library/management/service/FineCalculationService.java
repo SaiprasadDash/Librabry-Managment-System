@@ -1,3 +1,4 @@
+
 package com.library.management.service;
 
 import com.library.management.entity.BorrowRecord;
@@ -12,6 +13,11 @@ public class FineCalculationService {
     private static final double FINE_PER_DAY = 5.0;
 
     public double calculateFine(BorrowRecord record) {
+
+        // Pending borrowing requests have no due date
+        if (record.getDueDate() == null) {
+            return 0.0;
+        }
 
         LocalDate endDate = record.getReturnDate() != null
                 ? record.getReturnDate()

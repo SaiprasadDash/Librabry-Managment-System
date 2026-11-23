@@ -123,7 +123,7 @@ function BookDeleteRequests() {
                         <tbody>
                             {requests.length === 0 ? (
                                 <tr>
-                                    <td colSpan="10" style={{ textAlign: "center", padding: "20px" }}>
+                                    <td colSpan="11" style={{ textAlign: "center", padding: "20px" }}>
                                         No deletion requests found
                                     </td>
                                 </tr>

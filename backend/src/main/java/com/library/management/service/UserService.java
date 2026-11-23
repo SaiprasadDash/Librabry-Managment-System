@@ -85,6 +85,21 @@ public class UserService {
                 updatedUser.getCreatedAt());
     }
 
+    public List<UserResponseDTO> getAllMembers() {
+
+        return userRepository.findByRoleIn(List.of(Role.MEMBER))
+                .stream()
+                .filter(User::isEnabled)
+                .map(user -> new UserResponseDTO(
+                        user.getId(),
+                        user.getName(),
+                        user.getEmail(),
+                        user.getRole(),
+                        user.isEnabled(),
+                        user.getCreatedAt()))
+                .toList();
+    }
+
     public String disableUser(Long id) {
 
         User user = userRepository.findById(id)

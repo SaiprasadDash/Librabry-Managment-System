@@ -1,61 +1,62 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
+import apiconnect from "../../servises/ApiConnect";
 
 function ReturnBooks() {
     const [searchTerm, setSearchTerm] = useState("");
+    const [borrowingRecords, setBorrowingRecords] = useState([]);
     const [selectedRecord, setSelectedRecord] = useState(null);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [returning, setReturning] = useState(false);
 
-    const borrowingRecords = [
-        {
-            id: 1,
-            member: { id: 1, name: "John Doe", email: "john.doe@example.com" },
-            book: { id: 1, title: "The Great Gatsby", isbn: "978-0743273565" },
-            borrowedDate: "2024-01-10",
-            dueDate: "2024-01-24",
-            status: "Active",
-        },
-        {
-            id: 2,
-            member: { id: 2, name: "Jane Smith", email: "jane.smith@example.com" },
-            book: { id: 2, title: "To Kill a Mockingbird", isbn: "978-0061120084" },
-            borrowedDate: "2024-01-05",
-            dueDate: "2024-01-19",
-            status: "Overdue",
-        },
-        {
-            id: 3,
-            member: { id: 4, name: "Alice Brown", email: "alice.brown@example.com" },
-            book: { id: 4, title: "Pride and Prejudice", isbn: "978-0141439518" },
-            borrowedDate: "2024-01-15",
-            dueDate: "2024-01-29",
-            status: "Active",
-        },
-        {
-            id: 4,
-            member: { id: 1, name: "John Doe", email: "john.doe@example.com" },
-            book: { id: 5, title: "The Catcher in the Rye", isbn: "978-0316769488" },
-            borrowedDate: "2023-12-20",
-            dueDate: "2024-01-03",
-            status: "Overdue",
-        },
-    ];
+    useEffect(() => {
+        fetchPendingReturns();
+    }, []);
 
-    const calculateOverdueDays = (dueDate) => {
-        const due = new Date(dueDate);
-        const today = new Date();
-        const diffTime = today - due;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays > 0 ? diffDays : 0;
+    // Fetch only pending return requests
+    const fetchPendingReturns = async () => {
+        try {
+            setLoading(true);
+
+            const data = await apiconnect.getData(
+                "/api/borrowings/return-requests"
+            );
+
+            setBorrowingRecords(data);
+
+        } catch (error) {
+            console.error("Failed to fetch pending returns:", error);
+            alert("Failed to load pending return requests");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const calculateFine = (overdueDays) => {
-        return overdueDays * 5; // Rs. 5 per day
+    const calculateOverdueDays = (dueDate) => {
+        if (!dueDate) return 0;
+
+        const due = new Date(dueDate + "T00:00:00");
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const diffTime = today - due;
+        const diffDays = Math.floor(
+            diffTime / (1000 * 60 * 60 * 24)
+        );
+
+        return Math.max(0, diffDays);
+    };
+
+    const calculateFine = (record) => {
+        return record.fineAmount || 0;
     };
 
     const filteredRecords = borrowingRecords.filter((record) =>
-        record.member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.book.title?.toLowerCase().includes(searchTerm.toLowerCase())
+        record.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.bookTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.isbn?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const handleReturn = (record) => {
@@ -63,26 +64,40 @@ function ReturnBooks() {
         setShowConfirmModal(true);
     };
 
-    const confirmReturn = () => {
-        if (selectedRecord) {
-            console.log("Return Book:", selectedRecord);
-            alert("Book returned successfully!");
+    // Librarian confirms the return
+    const confirmReturn = async () => {
+        if (!selectedRecord) return;
+
+        try {
+            setReturning(true);
+
+            await apiconnect.putData(
+                `/api/borrowings/${selectedRecord.id}/return/librarian`,
+                {}
+            );
+
+            alert("Book return confirmed successfully!");
+
             setShowConfirmModal(false);
             setSelectedRecord(null);
-        }
-    };
 
-    const getStatusClass = (status) => {
-        switch (status.toLowerCase()) {
-            case "active": return "available";
-            case "overdue": return "overdue";
-            case "returned": return "active";
-            default: return "inactive";
+            await fetchPendingReturns();
+
+        } catch (error) {
+            console.error("Failed to confirm return:", error);
+
+            alert(
+                error?.response?.data?.message ||
+                "Failed to confirm book return. Please try again."
+            );
+        } finally {
+            setReturning(false);
         }
     };
 
     return (
         <div className="admin-dashboard">
+
             <div className="admin-filters">
                 <div className="admin-search-box">
                     <input
@@ -92,13 +107,18 @@ function ReturnBooks() {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                    <button className="admin-search-btn">Search</button>
+
+                    <button className="admin-search-btn">
+                        Search
+                    </button>
                 </div>
             </div>
 
             <section className="admin-panel">
+
                 <div className="admin-table-wrapper">
                     <table className="admin-table">
+
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -114,120 +134,199 @@ function ReturnBooks() {
                                 <th>Actions</th>
                             </tr>
                         </thead>
+
                         <tbody>
-                            {filteredRecords.length === 0 ? (
+
+                            {loading ? (
                                 <tr>
                                     <td colSpan="11" style={{ textAlign: "center", padding: "20px" }}>
-                                        No borrowing records found
+                                        Loading pending return requests...
+                                    </td>
+                                </tr>
+                            ) : filteredRecords.length === 0 ? (
+                                <tr>
+                                    <td colSpan="11" style={{ textAlign: "center", padding: "20px" }}>
+                                        No pending return requests found
                                     </td>
                                 </tr>
                             ) : (
                                 filteredRecords.map((record) => {
                                     const overdueDays = calculateOverdueDays(record.dueDate);
-                                    const fine = calculateFine(overdueDays);
+                                    const fine = calculateFine(record);
+
                                     return (
                                         <tr key={record.id}>
+
                                             <td>#{record.id}</td>
-                                            <td className="admin-book-title">{record.member.name}</td>
-                                            <td>{record.member.email}</td>
-                                            <td>{record.book.title}</td>
-                                            <td className="admin-isbn">{record.book.isbn}</td>
-                                            <td>{record.borrowedDate}</td>
-                                            <td className={overdueDays > 0 ? "admin-due-date" : ""}>{record.dueDate}</td>
+
+                                            <td className="admin-book-title">
+                                                {record.userName}
+                                            </td>
+
+                                            <td>{record.userEmail}</td>
+
+                                            <td>{record.bookTitle}</td>
+
+                                            <td className="admin-isbn">
+                                                {record.isbn}
+                                            </td>
+
+                                            <td>{record.borrowDate}</td>
+
+                                            <td className={overdueDays > 0 ? "admin-due-date" : ""}>
+                                                {record.dueDate}
+                                            </td>
+
                                             <td>
-                                                <span className={overdueDays > 0 ? "admin-fine-amount" : "admin-fine-zero"}>
+                                                <span className={
+                                                    overdueDays > 0
+                                                        ? "admin-fine-amount"
+                                                        : "admin-fine-zero"
+                                                }>
                                                     {overdueDays} days
                                                 </span>
                                             </td>
-                                            <td className={fine > 0 ? "admin-fine-amount" : "admin-fine-zero"}>
+
+                                            <td className={
+                                                fine > 0
+                                                    ? "admin-fine-amount"
+                                                    : "admin-fine-zero"
+                                            }>
                                                 Rs. {fine}
                                             </td>
+
                                             <td>
-                                                <span className={`admin-badge admin-badge-${getStatusClass(record.status)}`}>
-                                                    {record.status}
+                                                <span className="admin-badge admin-badge-overdue">
+                                                    Return Pending
                                                 </span>
                                             </td>
+
                                             <td>
                                                 <div className="admin-action-buttons">
                                                     <button
                                                         className="admin-btn admin-btn-return"
                                                         onClick={() => handleReturn(record)}
                                                     >
-                                                        Return
+                                                        Confirm Return
                                                     </button>
                                                 </div>
                                             </td>
+
                                         </tr>
                                     );
                                 })
                             )}
+
                         </tbody>
                     </table>
                 </div>
 
                 <div className="admin-pagination">
                     <span className="admin-pagination-info">
-                        Showing {filteredRecords.length} of {borrowingRecords.length} records
+                        Showing {filteredRecords.length} of {borrowingRecords.length} pending requests
                     </span>
                 </div>
+
             </section>
 
             {showConfirmModal && selectedRecord && (
-                <div className="admin-modal-overlay" onClick={() => setShowConfirmModal(false)}>
-                    <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                <div
+                    className="admin-modal-overlay"
+                    onClick={() => !returning && setShowConfirmModal(false)}
+                >
+
+                    <div
+                        className="admin-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+
                         <div className="admin-modal-header">
                             <h2>Confirm Book Return</h2>
-                            <button className="admin-modal-close" onClick={() => setShowConfirmModal(false)}>
+
+                            <button
+                                className="admin-modal-close"
+                                disabled={returning}
+                                onClick={() => setShowConfirmModal(false)}
+                            >
                                 ×
                             </button>
                         </div>
+
                         <div className="admin-modal-content">
+
                             <div className="admin-detail-row">
                                 <span className="admin-detail-label">Member:</span>
-                                <span className="admin-detail-value">{selectedRecord.member.name}</span>
+                                <span className="admin-detail-value">
+                                    {selectedRecord.userName}
+                                </span>
                             </div>
+
                             <div className="admin-detail-row">
                                 <span className="admin-detail-label">Book:</span>
-                                <span className="admin-detail-value">{selectedRecord.book.title}</span>
+                                <span className="admin-detail-value">
+                                    {selectedRecord.bookTitle}
+                                </span>
                             </div>
+
                             <div className="admin-detail-row">
                                 <span className="admin-detail-label">Borrowed Date:</span>
-                                <span className="admin-detail-value">{selectedRecord.borrowedDate}</span>
+                                <span className="admin-detail-value">
+                                    {selectedRecord.borrowDate}
+                                </span>
                             </div>
+
                             <div className="admin-detail-row">
                                 <span className="admin-detail-label">Due Date:</span>
-                                <span className="admin-detail-value">{selectedRecord.dueDate}</span>
+                                <span className="admin-detail-value">
+                                    {selectedRecord.dueDate}
+                                </span>
                             </div>
+
                             <div className="admin-detail-row">
                                 <span className="admin-detail-label">Overdue Days:</span>
                                 <span className="admin-detail-value">
                                     {calculateOverdueDays(selectedRecord.dueDate)} days
                                 </span>
                             </div>
+
                             <div className="admin-detail-row">
                                 <span className="admin-detail-label">Fine Amount:</span>
                                 <span className="admin-detail-value admin-fine-amount">
-                                    Rs. {calculateFine(calculateOverdueDays(selectedRecord.dueDate))}
+                                    Rs. {calculateFine(selectedRecord)}
                                 </span>
                             </div>
+
+                            <p>
+                                Are you sure you have received this physical book?
+                                Confirming will officially complete the return.
+                            </p>
+
                         </div>
+
                         <div className="admin-modal-footer">
+
                             <button
                                 className="admin-btn admin-btn-secondary"
+                                disabled={returning}
                                 onClick={() => setShowConfirmModal(false)}
                             >
                                 Cancel
                             </button>
+
                             <button
                                 className="admin-btn admin-btn-primary"
                                 onClick={confirmReturn}
+                                disabled={returning}
                             >
-                                Confirm Return
+                                {returning ? "Confirming..." : "Confirm Return"}
                             </button>
+
                         </div>
+
                     </div>
                 </div>
             )}
+
         </div>
     );
 }

@@ -1,80 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import apiconnect from "../../servises/ApiConnect";
 
 function BorrowingHistory() {
     const [searchTerm, setSearchTerm] = useState("");
     const [dateFilter, setDateFilter] = useState("");
     const [statusFilter, setStatusFilter] = useState("");
+    const [borrowingHistory, setBorrowingHistory] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    const borrowingHistory = [
-        {
-            id: 1,
-            member: "John Doe",
-            book: "The Great Gatsby",
-            borrowedDate: "2024-01-10",
-            dueDate: "2024-01-24",
-            returnDate: "2024-01-20",
-            status: "Returned",
-            fine: 0,
-        },
-        {
-            id: 2,
-            member: "Jane Smith",
-            book: "To Kill a Mockingbird",
-            borrowedDate: "2024-01-05",
-            dueDate: "2024-01-19",
-            returnDate: null,
-            status: "Overdue",
-            fine: 50,
-        },
-        {
-            id: 3,
-            member: "Alice Brown",
-            book: "Pride and Prejudice",
-            borrowedDate: "2024-01-15",
-            dueDate: "2024-01-29",
-            returnDate: null,
-            status: "Active",
-            fine: 0,
-        },
-        {
-            id: 4,
-            member: "John Doe",
-            book: "The Catcher in the Rye",
-            borrowedDate: "2023-12-20",
-            dueDate: "2024-01-03",
-            returnDate: "2024-01-10",
-            status: "Returned Late",
-            fine: 35,
-        },
-        {
-            id: 5,
-            member: "Bob Johnson",
-            book: "1984",
-            borrowedDate: "2024-01-01",
-            dueDate: "2024-01-15",
-            returnDate: "2024-01-14",
-            status: "Returned",
-            fine: 0,
-        },
-        {
-            id: 6,
-            member: "Jane Smith",
-            book: "Brave New World",
-            borrowedDate: "2023-12-10",
-            dueDate: "2023-12-24",
-            returnDate: "2023-12-28",
-            status: "Returned Late",
-            fine: 20,
-        },
-    ];
+    useEffect(() => {
+        fetchBorrowingHistory();
+    }, []);
+
+    const fetchBorrowingHistory = async () => {
+        try {
+            setLoading(true);
+            const data = await apiconnect.getData("/api/borrowings/all");
+            setBorrowingHistory(data);
+            setError(null);
+        } catch (err) {
+            setError("Failed to fetch borrowing history");
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const filteredHistory = borrowingHistory.filter((record) => {
         const matchesSearch =
-            record.member?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            record.book?.toLowerCase().includes(searchTerm.toLowerCase());
+            record.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            record.bookTitle?.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesDate = !dateFilter ||
-            record.borrowedDate === dateFilter ||
+            record.borrowDate === dateFilter ||
             record.returnDate === dateFilter;
 
         const matchesStatus = !statusFilter || record.status === statusFilter;
@@ -83,17 +42,25 @@ function BorrowingHistory() {
     });
 
     const getStatusClass = (status) => {
-        switch (status.toLowerCase()) {
-            case "active": return "available";
-            case "returned": return "active";
-            case "overdue": return "overdue";
-            case "returned late": return "borrowed";
+        switch (status) {
+            case "BORROWED": return "available";
+            case "RETURNED": return "active";
+            case "OVERDUE": return "overdue";
+            case "RETURNED_LATE": return "borrowed";
             default: return "inactive";
         }
     };
 
-    const uniqueDates = [...new Set(borrowingHistory.flatMap(r => [r.borrowedDate, r.returnDate].filter(Boolean)))].sort();
+    const uniqueDates = [...new Set(borrowingHistory.flatMap(r => [r.borrowDate, r.returnDate].filter(Boolean)))].sort();
     const uniqueStatuses = [...new Set(borrowingHistory.map(r => r.status))];
+
+    if (loading) {
+        return <div className="admin-dashboard">Loading...</div>;
+    }
+
+    if (error) {
+        return <div className="admin-dashboard">Error: {error}</div>;
+    }
 
     return (
         <div className="admin-dashboard">
@@ -143,7 +110,9 @@ function BorrowingHistory() {
                             <tr>
                                 <th>ID</th>
                                 <th>Member</th>
+                                <th>Email</th>
                                 <th>Book</th>
+                                <th>ISBN</th>
                                 <th>Borrowed Date</th>
                                 <th>Due Date</th>
                                 <th>Return Date</th>
@@ -154,7 +123,7 @@ function BorrowingHistory() {
                         <tbody>
                             {filteredHistory.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>
+                                    <td colSpan="10" style={{ textAlign: "center", padding: "20px" }}>
                                         No records found
                                     </td>
                                 </tr>
@@ -162,18 +131,20 @@ function BorrowingHistory() {
                                 filteredHistory.map((record) => (
                                     <tr key={record.id}>
                                         <td>#{record.id}</td>
-                                        <td className="admin-book-title">{record.member}</td>
-                                        <td>{record.book}</td>
-                                        <td>{record.borrowedDate}</td>
-                                        <td className={record.status === "Overdue" ? "admin-due-date" : ""}>{record.dueDate}</td>
+                                        <td className="admin-book-title">{record.userName}</td>
+                                        <td>{record.userEmail}</td>
+                                        <td>{record.bookTitle}</td>
+                                        <td className="admin-isbn">{record.isbn}</td>
+                                        <td>{record.borrowDate}</td>
+                                        <td className={record.status === "OVERDUE" ? "admin-due-date" : ""}>{record.dueDate}</td>
                                         <td>{record.returnDate || "-"}</td>
                                         <td>
                                             <span className={`admin-badge admin-badge-${getStatusClass(record.status)}`}>
                                                 {record.status}
                                             </span>
                                         </td>
-                                        <td className={record.fine > 0 ? "admin-fine-amount" : "admin-fine-zero"}>
-                                            Rs. {record.fine}
+                                        <td className={record.fineAmount > 0 ? "admin-fine-amount" : "admin-fine-zero"}>
+                                            Rs. {record.fineAmount}
                                         </td>
                                     </tr>
                                 ))

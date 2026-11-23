@@ -46,22 +46,22 @@ public class BorrowRecordService {
                                 .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
 
                 boolean alreadyBorrowed = borrowRecordRepository
-                                .existsByUserIdAndBookIdAndStatus(
-                                                user.getId(), bookId, BorrowStatus.BORROWED);
+                                .existsByUserIdAndBookIdAndStatus(user.getId(), bookId, BorrowStatus.BORROWED);
 
-                if (alreadyBorrowed) {
-                        throw new IllegalStateException("You have already borrowed this book");
+                boolean requestPending = borrowRecordRepository
+                                .existsByUserIdAndBookIdAndStatus(user.getId(), bookId, BorrowStatus.BORROW_PENDING);
+
+                if (alreadyBorrowed || requestPending) {
+                        throw new IllegalStateException(
+                                        "You have already borrowed this book or have a pending borrow request");
                 }
 
-                // Check whether this member has a reserved copy ready for pickup
-                Optional<Reservation> readyReservation = reservationRepository.findByBookIdAndUserIdAndStatus(
-                                bookId,
-                                user.getId(),
-                                ReservationStatus.READY_FOR_PICKUP);
+                Optional<Reservation> readyReservation = reservationRepository
+                                .findByBookIdAndUserIdAndStatus(
+                                                bookId, user.getId(), ReservationStatus.READY_FOR_PICKUP);
 
                 boolean isReservedBook = readyReservation.isPresent();
 
-                // Normal borrowing is allowed only when copies are available
                 if (!isReservedBook && book.getAvailableCopies() <= 0) {
                         throw new IllegalStateException("No copies of this book are currently available");
                 }
@@ -70,19 +70,63 @@ public class BorrowRecordService {
 
                 record.setUser(user);
                 record.setBook(book);
-                record.setBorrowDate(LocalDate.now());
-                record.setDueDate(LocalDate.now().plusDays(BORROW_DAYS));
-                record.setStatus(BorrowStatus.BORROWED);
+                record.setBorrowDate(null);
+                record.setDueDate(null);
+                record.setReturnDate(null);
+                record.setStatus(BorrowStatus.BORROW_PENDING);
 
-                // Reserved copies are already excluded from availableCopies
-                if (isReservedBook) {
+                BorrowRecord savedRecord = borrowRecordRepository.save(record);
+
+                return mapToResponse(savedRecord);
+        }
+
+        @Transactional
+        public BorrowRecordResponseDTO borrowBookForMember(Long bookId, Long memberId) {
+
+                User member = userRepository.findById(memberId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Member not found"));
+
+                if (member.getRole() != com.library.management.entity.Role.MEMBER) {
+                        throw new IllegalStateException("Selected user is not a member");
+                }
+
+                return borrowBook(bookId, member.getEmail());
+        }
+
+        @Transactional
+        public BorrowRecordResponseDTO issuePendingBorrowRequest(Long borrowId) {
+
+                BorrowRecord record = borrowRecordRepository.findById(borrowId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Borrowing request not found"));
+
+                if (record.getStatus() != BorrowStatus.BORROW_PENDING) {
+                        throw new IllegalStateException("This borrowing request is not pending");
+                }
+
+                Book book = record.getBook();
+
+                Optional<Reservation> readyReservation = reservationRepository
+                                .findByBookIdAndUserIdAndStatus(
+                                                book.getId(),
+                                                record.getUser().getId(),
+                                                ReservationStatus.READY_FOR_PICKUP);
+
+                if (readyReservation.isPresent()) {
                         Reservation reservation = readyReservation.get();
                         reservation.setStatus(ReservationStatus.FULFILLED);
                         reservationRepository.save(reservation);
                 } else {
+                        if (book.getAvailableCopies() <= 0) {
+                                throw new IllegalStateException("No copies of this book are currently available");
+                        }
+
                         book.setAvailableCopies(book.getAvailableCopies() - 1);
                         bookRepository.save(book);
                 }
+
+                record.setBorrowDate(LocalDate.now());
+                record.setDueDate(LocalDate.now().plusDays(BORROW_DAYS));
+                record.setStatus(BorrowStatus.BORROWED);
 
                 BorrowRecord savedRecord = borrowRecordRepository.save(record);
 
@@ -102,8 +146,26 @@ public class BorrowRecordService {
                         throw new IllegalStateException("You cannot return another user's book");
                 }
 
-                if (record.getStatus() == BorrowStatus.RETURNED) {
-                        throw new IllegalStateException("This book has already been returned");
+                if (record.getStatus() != BorrowStatus.BORROWED) {
+                        throw new IllegalStateException("This book is already returned or a return request is pending");
+                }
+
+                // Wait for Librarian approval
+                record.setStatus(BorrowStatus.RETURN_PENDING);
+
+                BorrowRecord savedRecord = borrowRecordRepository.save(record);
+
+                return mapToResponse(savedRecord);
+        }
+
+        @Transactional
+        public BorrowRecordResponseDTO returnBookForLibrarian(Long borrowId) {
+
+                BorrowRecord record = borrowRecordRepository.findById(borrowId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Borrowing record not found"));
+
+                if (record.getStatus() != BorrowStatus.RETURN_PENDING) {
+                        throw new IllegalStateException("There is no pending return request for this book");
                 }
 
                 record.setReturnDate(LocalDate.now());
@@ -155,6 +217,33 @@ public class BorrowRecordService {
                 return borrowRecordRepository
                                 .findByUserIdAndStatusAndDueDateBefore(
                                                 user.getId(), BorrowStatus.BORROWED, LocalDate.now())
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
+        }
+
+        @Transactional(readOnly = true)
+        public List<BorrowRecordResponseDTO> getAllBorrowings() {
+
+                return borrowRecordRepository.findAll()
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
+        }
+
+        @Transactional(readOnly = true)
+        public List<BorrowRecordResponseDTO> getPendingBorrowRequests() {
+
+                return borrowRecordRepository.findByStatus(BorrowStatus.BORROW_PENDING)
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
+        }
+
+        @Transactional(readOnly = true)
+        public List<BorrowRecordResponseDTO> getPendingReturnRequests() {
+
+                return borrowRecordRepository.findByStatus(BorrowStatus.RETURN_PENDING)
                                 .stream()
                                 .map(this::mapToResponse)
                                 .toList();
