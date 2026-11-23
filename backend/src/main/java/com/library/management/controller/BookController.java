@@ -5,6 +5,8 @@ import com.library.management.dto.BookPatchDTO;
 import com.library.management.dto.BookRequestDTO;
 import com.library.management.dto.BookResponseDTO;
 import com.library.management.service.BookService;
+import com.library.management.dto.BookDeleteRequestDTO;
+import com.library.management.service.BookDeleteRequestService;
 
 import jakarta.validation.Valid;
 
@@ -25,9 +27,13 @@ import java.util.List;
 public class BookController {
 
     private final BookService bookService;
+    private final BookDeleteRequestService bookDeleteRequestService;
 
-    public BookController(BookService bookService) {
+    public BookController(
+            BookService bookService,
+            BookDeleteRequestService bookDeleteRequestService) {
         this.bookService = bookService;
+        this.bookDeleteRequestService = bookDeleteRequestService;
     }
 
     @PostMapping
@@ -94,6 +100,18 @@ public class BookController {
             @PageableDefault(size = 5, sort = "title", direction = Sort.Direction.ASC) Pageable pageable) {
 
         return bookService.searchBooks(keyword, pageable);
+    }
+
+    @PostMapping("/{id}/delete-request")
+    @PreAuthorize("hasRole('LIBRARIAN')")
+    public ResponseEntity<Map<String, String>> requestBookDeletion(
+            @PathVariable Long id,
+            @Valid @RequestBody BookDeleteRequestDTO request) {
+
+        bookDeleteRequestService.requestBookDeletion(id, request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                Map.of("message", "Book deletion request submitted for admin approval"));
     }
 
 }

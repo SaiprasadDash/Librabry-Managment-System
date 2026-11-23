@@ -10,6 +10,8 @@ import com.library.management.exception.ResourceNotFoundException;
 import com.library.management.repository.BookRepository;
 import com.library.management.repository.AuthorRepository;
 import com.library.management.repository.CategoryRepository;
+import com.library.management.repository.BorrowRecordRepository;
+import com.library.management.repository.ReservationRepository;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +44,12 @@ class BookServiceTest {
 
         @Mock
         private CategoryRepository categoryRepository;
+
+        @Mock
+        private BorrowRecordRepository borrowRecordRepository;
+
+        @Mock
+        private ReservationRepository reservationRepository;
 
         @InjectMocks
         private BookService bookService;

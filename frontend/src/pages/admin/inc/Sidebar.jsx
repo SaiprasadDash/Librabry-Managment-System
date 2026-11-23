@@ -7,6 +7,7 @@ const menuItems = [
     { to: "/admin/users", label: "Librarians & Members" },
     { to: "/admin/borrowings", label: "Borrowing Records" },
     { to: "/admin/overdue", label: "Overdue & Fines" },
+    { to: "/admin/delete-requests", label: "Delete Requests" },
 ];
 
 function Sidebar() {

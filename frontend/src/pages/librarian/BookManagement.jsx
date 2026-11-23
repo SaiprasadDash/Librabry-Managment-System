@@ -1,40 +1,142 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import apiconnect from "../../servises/ApiConnect";
+
+function MultiSelect({ options, selectedIds, onChange, label, placeholder }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const toggleSelection = (id) => {
+        if (selectedIds.includes(id)) {
+            onChange(selectedIds.filter((selectedId) => selectedId !== id));
+        } else {
+            onChange([...selectedIds, id]);
+        }
+    };
+
+    const getSelectedNames = () => {
+        return options
+            .filter((option) => selectedIds.includes(option.id))
+            .map((option) => option.name)
+            .join(", ");
+    };
+
+    return (
+        <div className="admin-form-group">
+            <label>{label}</label>
+            <div className="admin-multi-select-wrapper" ref={dropdownRef}>
+                <div
+                    className="admin-multi-select-trigger"
+                    onClick={() => setIsOpen(!isOpen)}
+                >
+                    {selectedIds.length > 0 ? getSelectedNames() : placeholder}
+                    <span className="admin-multi-select-arrow">▼</span>
+                </div>
+                {isOpen && (
+                    <div className="admin-multi-select-dropdown">
+                        {options.length === 0 ? (
+                            <div className="admin-multi-select-no-options">No options available</div>
+                        ) : (
+                            options.map((option) => (
+                                <div
+                                    key={option.id}
+                                    className="admin-multi-select-option"
+                                    onClick={() => toggleSelection(option.id)}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedIds.includes(option.id)}
+                                        onChange={() => {}}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                    <span>{option.name}</span>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
 
 function BookManagement() {
+    const [books, setBooks] = useState([]);
+    const [authors, setAuthors] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("");
     const [showModal, setShowModal] = useState(false);
     const [editingBook, setEditingBook] = useState(null);
     const [viewingBook, setViewingBook] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteReason, setDeleteReason] = useState("");
+    const [bookToDelete, setBookToDelete] = useState(null);
 
     const [formData, setFormData] = useState({
         title: "",
         isbn: "",
-        author: "",
-        category: "",
+        description: "",
+        publisher: "",
+        publishedYear: "",
         totalCopies: "",
+        authorIds: [],
+        categoryIds: [],
     });
 
-    const books = [
-        { id: 1, title: "The Great Gatsby", isbn: "978-0743273565", author: "F. Scott Fitzgerald", category: "Fiction", totalCopies: 5, availableCopies: 3 },
-        { id: 2, title: "To Kill a Mockingbird", isbn: "978-0061120084", author: "Harper Lee", category: "Fiction", totalCopies: 8, availableCopies: 2 },
-        { id: 3, title: "1984", isbn: "978-0451524935", author: "George Orwell", category: "Science Fiction", totalCopies: 4, availableCopies: 0 },
-        { id: 4, title: "Pride and Prejudice", isbn: "978-0141439518", author: "Jane Austen", category: "Romance", totalCopies: 6, availableCopies: 4 },
-        { id: 5, title: "The Catcher in the Rye", isbn: "978-0316769488", author: "J.D. Salinger", category: "Fiction", totalCopies: 3, availableCopies: 1 },
-    ];
+    useEffect(() => {
+        fetchBooks();
+        fetchAuthors();
+        fetchCategories();
+    }, []);
 
-    const categories = ["Fiction", "Science Fiction", "Romance", "Mystery", "Biography", "History"];
+    const fetchBooks = async () => {
+        try {
+            setLoading(true);
+            const data = await apiconnect.getData("/api/books");
+            setBooks(data);
+            setError(null);
+        } catch (err) {
+            setError("Failed to fetch books");
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    const filteredBooks = books.filter((book) => {
-        const matchesSearch =
-            book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            book.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            book.isbn?.toLowerCase().includes(searchTerm.toLowerCase());
+    const fetchAuthors = async () => {
+        try {
+            const data = await apiconnect.getData("/api/authors");
+            setAuthors(data);
+        } catch (err) {
+            console.error("Failed to fetch authors", err);
+        }
+    };
 
-        const matchesCategory = !categoryFilter || book.category === categoryFilter;
+    const fetchCategories = async () => {
+        try {
+            const data = await apiconnect.getData("/api/categories");
+            setCategories(data);
+        } catch (err) {
+            console.error("Failed to fetch categories", err);
+        }
+    };
 
-        return matchesSearch && matchesCategory;
-    });
+    const handleSearch = (e) => {
+        setSearchTerm(e.target.value);
+    };
 
     const handleView = (book) => {
         setViewingBook(book);
@@ -45,9 +147,12 @@ function BookManagement() {
         setFormData({
             title: book.title,
             isbn: book.isbn,
-            author: book.author,
-            category: book.category,
-            totalCopies: book.totalCopies,
+            description: book.description || "",
+            publisher: book.publisher || "",
+            publishedYear: book.publishedYear || "",
+            totalCopies: book.totalCopies || book.quantity,
+            authorIds: book.authors?.map((author) => author.id) || [],
+            categoryIds: book.categories?.map((category) => category.id) || [],
         });
         setShowModal(true);
     };
@@ -57,29 +162,87 @@ function BookManagement() {
         setFormData({
             title: "",
             isbn: "",
-            author: "",
-            category: "",
+            description: "",
+            publisher: "",
+            publishedYear: "",
             totalCopies: "",
+            authorIds: [],
+            categoryIds: [],
         });
         setShowModal(true);
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm("Are you sure you want to delete this book?")) {
-            console.log("Delete book:", id);
+    const handleDeleteRequest = (book) => {
+        setBookToDelete(book);
+        setDeleteReason("");
+        setShowDeleteModal(true);
+    };
+
+    const confirmDeleteRequest = async () => {
+        if (!deleteReason.trim()) {
+            alert("Please provide a reason for the deletion request");
+            return;
+        }
+        try {
+            await apiconnect.postData(`/api/books/${bookToDelete.id}/delete-request`, {
+                reason: deleteReason
+            });
+            alert("Delete request sent to admin for approval");
+            setShowDeleteModal(false);
+            setBookToDelete(null);
+            setDeleteReason("");
+        } catch (err) {
+            alert("Failed to send delete request");
+            console.error(err);
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log("Submit:", editingBook ? "Edit" : "Add", formData);
-        setShowModal(false);
-        setEditingBook(null);
+        try {
+            const payload = {
+                ...formData,
+                publishedYear: formData.publishedYear ? parseInt(formData.publishedYear) : null,
+                totalCopies: parseInt(formData.totalCopies),
+            };
+
+            if (editingBook) {
+                await apiconnect.putData(`/api/books/${editingBook.id}`, payload);
+            } else {
+                await apiconnect.postData("/api/books", payload);
+            }
+
+            await fetchBooks();
+            setShowModal(false);
+            setEditingBook(null);
+        } catch (err) {
+            alert("Failed to save book");
+            console.error(err);
+        }
     };
 
     const handleInputChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
+
+    const filteredBooks = books.filter((book) => {
+        const matchesSearch =
+            book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            book.isbn?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            book.authors?.some((author) => author.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        const matchesCategory = !categoryFilter || book.categories?.some((cat) => cat.name === categoryFilter);
+
+        return matchesSearch && matchesCategory;
+    });
+
+    if (loading) {
+        return <div className="admin-dashboard">Loading...</div>;
+    }
+
+    if (error) {
+        return <div className="admin-dashboard">Error: {error}</div>;
+    }
 
     return (
         <div className="admin-dashboard">
@@ -90,7 +253,7 @@ function BookManagement() {
                         placeholder="Search by title, author, or ISBN..."
                         className="admin-search-input"
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={handleSearch}
                     />
                     <button className="admin-search-btn">Search</button>
                 </div>
@@ -102,8 +265,8 @@ function BookManagement() {
                     >
                         <option value="">All Categories</option>
                         {categories.map((category) => (
-                            <option key={category} value={category}>
-                                {category}
+                            <option key={category.id} value={category.name}>
+                                {category.name}
                             </option>
                         ))}
                     </select>
@@ -120,9 +283,9 @@ function BookManagement() {
                             <tr>
                                 <th>ID</th>
                                 <th>Title</th>
-                                <th>Author</th>
+                                <th>Authors</th>
                                 <th>ISBN</th>
-                                <th>Category</th>
+                                <th>Categories</th>
                                 <th>Total Copies</th>
                                 <th>Available</th>
                                 <th>Actions</th>
@@ -142,10 +305,16 @@ function BookManagement() {
                                         <td>
                                             <span className="admin-book-title">{book.title}</span>
                                         </td>
-                                        <td>{book.author}</td>
+                                        <td>
+                                            {book.authors?.map((author) => author.name).join(", ") || "-"}
+                                        </td>
                                         <td className="admin-isbn">{book.isbn}</td>
                                         <td>
-                                            <span className="admin-badge admin-badge-category">{book.category}</span>
+                                            {book.categories?.map((cat) => (
+                                                <span key={cat.id} className="admin-badge admin-badge-category" style={{ marginRight: "4px" }}>
+                                                    {cat.name}
+                                                </span>
+                                            )) || "-"}
                                         </td>
                                         <td>{book.totalCopies}</td>
                                         <td>
@@ -177,10 +346,8 @@ function BookManagement() {
                                                 </button>
                                                 <button
                                                     className="admin-btn-icon admin-btn-delete"
-                                                    title="Delete"
-                                                    onClick={() => handleDelete(book.id)}
-                                                    disabled={book.availableCopies < book.totalCopies}
-                                                    style={{ opacity: book.availableCopies < book.totalCopies ? 0.5 : 1 }}
+                                                    title="Request Delete"
+                                                    onClick={() => handleDeleteRequest(book)}
                                                 >
                                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                         <polyline points="3 6 5 6 21 6"></polyline>
@@ -234,30 +401,31 @@ function BookManagement() {
                                 />
                             </div>
                             <div className="admin-form-group">
-                                <label>Author *</label>
-                                <input
-                                    type="text"
-                                    name="author"
-                                    value={formData.author}
+                                <label>Description</label>
+                                <textarea
+                                    name="description"
+                                    value={formData.description}
                                     onChange={handleInputChange}
-                                    required
+                                    rows="3"
                                 />
                             </div>
                             <div className="admin-form-group">
-                                <label>Category *</label>
-                                <select
-                                    name="category"
-                                    value={formData.category}
+                                <label>Publisher</label>
+                                <input
+                                    type="text"
+                                    name="publisher"
+                                    value={formData.publisher}
                                     onChange={handleInputChange}
-                                    required
-                                >
-                                    <option value="">Select category</option>
-                                    {categories.map((category) => (
-                                        <option key={category} value={category}>
-                                            {category}
-                                        </option>
-                                    ))}
-                                </select>
+                                />
+                            </div>
+                            <div className="admin-form-group">
+                                <label>Published Year</label>
+                                <input
+                                    type="number"
+                                    name="publishedYear"
+                                    value={formData.publishedYear}
+                                    onChange={handleInputChange}
+                                />
                             </div>
                             <div className="admin-form-group">
                                 <label>Total Copies *</label>
@@ -270,6 +438,20 @@ function BookManagement() {
                                     min="1"
                                 />
                             </div>
+                            <MultiSelect
+                                options={authors}
+                                selectedIds={formData.authorIds}
+                                onChange={(ids) => setFormData({ ...formData, authorIds: ids })}
+                                label="Authors *"
+                                placeholder="Select authors..."
+                            />
+                            <MultiSelect
+                                options={categories}
+                                selectedIds={formData.categoryIds}
+                                onChange={(ids) => setFormData({ ...formData, categoryIds: ids })}
+                                label="Categories *"
+                                placeholder="Select categories..."
+                            />
                             <div className="admin-modal-footer">
                                 <button
                                     type="button"
@@ -309,12 +491,24 @@ function BookManagement() {
                                 <p>{viewingBook.isbn}</p>
                             </div>
                             <div className="admin-form-group">
-                                <label>Author:</label>
-                                <p>{viewingBook.author}</p>
+                                <label>Description:</label>
+                                <p>{viewingBook.description || "-"}</p>
                             </div>
                             <div className="admin-form-group">
-                                <label>Category:</label>
-                                <p>{viewingBook.category}</p>
+                                <label>Publisher:</label>
+                                <p>{viewingBook.publisher || "-"}</p>
+                            </div>
+                            <div className="admin-form-group">
+                                <label>Published Year:</label>
+                                <p>{viewingBook.publishedYear || "-"}</p>
+                            </div>
+                            <div className="admin-form-group">
+                                <label>Authors:</label>
+                                <p>{viewingBook.authors?.map((a) => a.name).join(", ") || "-"}</p>
+                            </div>
+                            <div className="admin-form-group">
+                                <label>Categories:</label>
+                                <p>{viewingBook.categories?.map((c) => c.name).join(", ") || "-"}</p>
                             </div>
                             <div className="admin-form-group">
                                 <label>Total Copies:</label>
@@ -333,6 +527,56 @@ function BookManagement() {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {showDeleteModal && bookToDelete && (
+                <div className="admin-modal-overlay" onClick={() => setShowDeleteModal(false)}>
+                    <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="admin-modal-header">
+                            <h2>Request Book Deletion</h2>
+                            <button className="admin-modal-close" onClick={() => setShowDeleteModal(false)}>
+                                ×
+                            </button>
+                        </div>
+                        <div className="admin-modal-content">
+                            <div className="admin-detail-row">
+                                <span className="admin-detail-label">Book:</span>
+                                <span className="admin-detail-value">{bookToDelete.title}</span>
+                            </div>
+                            <div className="admin-detail-row">
+                                <span className="admin-detail-label">ISBN:</span>
+                                <span className="admin-detail-value">{bookToDelete.isbn}</span>
+                            </div>
+                        </div>
+                        <form onSubmit={(e) => { e.preventDefault(); confirmDeleteRequest(); }} className="admin-modal-form">
+                            <div className="admin-form-group">
+                                <label>Reason for Deletion *</label>
+                                <textarea
+                                    value={deleteReason}
+                                    onChange={(e) => setDeleteReason(e.target.value)}
+                                    rows="4"
+                                    placeholder="Please provide a reason for this deletion request..."
+                                    required
+                                />
+                            </div>
+                            <div className="admin-modal-footer">
+                                <button
+                                    type="button"
+                                    className="admin-btn admin-btn-secondary"
+                                    onClick={() => setShowDeleteModal(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="admin-btn admin-btn-primary"
+                                >
+                                    Send Request
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

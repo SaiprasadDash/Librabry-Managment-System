@@ -11,6 +11,7 @@ import AuthorsCategories from "../pages/admin/AuthorsCategories";
 import UserManagement from "../pages/admin/UserManagement";
 import BorrowingRecords from "../pages/admin/BorrowingRecords";
 import OverdueFines from "../pages/admin/OverdueFines";
+import BookDeleteRequests from "../pages/admin/BookDeleteRequests";
 import LibrarianDashboard from "../pages/librarian/Dashboard";
 import LibrarianLayout from "../pages/librarian/inc/LibrarianLayout";
 import LibrarianBookManagement from "../pages/librarian/BookManagement";
@@ -70,6 +71,7 @@ function RootRouter() {
                             <Route path="users" element={<UserManagement />} />
                             <Route path="borrowings" element={<BorrowingRecords />} />
                             <Route path="overdue" element={<OverdueFines />} />
+                            <Route path="delete-requests" element={<BookDeleteRequests />} />
                         </Route>
                     </Route>
 
