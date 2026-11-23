@@ -31,6 +31,8 @@ public interface BorrowRecordRepository
                         Long userId,
                         BorrowStatus status,
                         LocalDate date);
-
+        List<BorrowRecord> findTop5ByOrderByBorrowDateDesc();
+        
         boolean existsByBookId(Long bookId);
+        long countByStatus(BorrowStatus status);
 }
