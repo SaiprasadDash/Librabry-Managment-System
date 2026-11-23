@@ -118,11 +118,6 @@ function UserManagement() {
 
     return (
         <div className="admin-dashboard">
-            <div className="admin-dashboard-header">
-                <h1>Librarians & Members</h1>
-                <p>Manage library staff and member accounts</p>
-            </div>
-
             <div className="admin-filters">
                 <div className="admin-search-box">
                     <input type="text" placeholder="Search by name, email, or phone..." className="admin-search-input" />

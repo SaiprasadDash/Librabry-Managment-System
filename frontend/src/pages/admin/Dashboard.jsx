@@ -63,11 +63,6 @@ function AdminDashboard() {
     }
     return (
         <div className="admin-dashboard">
-            <div className="admin-dashboard-header">
-                <h1>Dashboard</h1>
-                <p>Overview of the library at a glance</p>
-            </div>
-
             <div className="admin-stats-grid">
                 {stats.map((stat) => (
                     <div key={stat.label} className={`admin-stat-card admin-stat-${stat.type}`}>

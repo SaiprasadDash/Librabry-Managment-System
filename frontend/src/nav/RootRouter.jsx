@@ -12,6 +12,14 @@ import UserManagement from "../pages/admin/UserManagement";
 import BorrowingRecords from "../pages/admin/BorrowingRecords";
 import OverdueFines from "../pages/admin/OverdueFines";
 import LibrarianDashboard from "../pages/librarian/Dashboard";
+import LibrarianLayout from "../pages/librarian/inc/LibrarianLayout";
+import LibrarianBookManagement from "../pages/librarian/BookManagement";
+import LibrarianMemberManagement from "../pages/librarian/MemberManagement";
+import LibrarianIssueBooks from "../pages/librarian/IssueBooks";
+import LibrarianReturnBooks from "../pages/librarian/ReturnBooks";
+import LibrarianBorrowingHistory from "../pages/librarian/BorrowingHistory";
+import LibrarianOverdueBooks from "../pages/librarian/OverdueBooks";
+import LibrarianFineManagement from "../pages/librarian/FineManagement";
 
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
@@ -67,7 +75,17 @@ function RootRouter() {
 
                     {/* Librarian Routes */}
                     <Route element={<RoleRoute allowedRoles={["LIBRARIAN"]} />}>
-                        <Route path="/librarian/dashboard" element={<LibrarianDashboard />} />
+                        <Route path="/librarian" element={<LibrarianLayout />}>
+                            <Route index element={<Navigate to="/librarian/dashboard" replace />} />
+                            <Route path="dashboard" element={<LibrarianDashboard />} />
+                            <Route path="books" element={<LibrarianBookManagement />} />
+                            <Route path="members" element={<LibrarianMemberManagement />} />
+                            <Route path="issue" element={<LibrarianIssueBooks />} />
+                            <Route path="return" element={<LibrarianReturnBooks />} />
+                            <Route path="history" element={<LibrarianBorrowingHistory />} />
+                            <Route path="overdue" element={<LibrarianOverdueBooks />} />
+                            <Route path="fines" element={<LibrarianFineManagement />} />
+                        </Route>
                     </Route>
 
                 </Route>

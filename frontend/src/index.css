@@ -1,31 +1,33 @@
 :root {
-  /* Modern Academic Color Palette */
-  --primary: #172554;
-  --secondary: #0F766E;
-  --secondary-hover: #0D9488;
-  --background: #F8FAFC;
+  /* Warm Color Palette - Light Theme */
+  --primary: #7C3AED;
+  --secondary: #EA580C;
+  --secondary-hover: #F97316;
+  --background: #FFFBEB;
   --surface: #FFFFFF;
   --accent: #F59E0B;
-  --text: #64748B;
-  --text-h: #172554;
-  --border: #E2E8F0;
-  --code-bg: #F1F5F9;
+  --text: #57534E;
+  --text-h: #44403C;
+  --border: #E7E5E4;
+  --code-bg: #FEF3C7;
 
   /* Secondary colors (for accents/highlights) */
-  --accent-bg: rgba(15, 118, 110, 0.1);
-  --accent-border: rgba(15, 118, 110, 0.3);
+  --accent-bg: rgba(234, 88, 12, 0.1);
+  --accent-border: rgba(234, 88, 12, 0.3);
 
   /* Status colors */
-  --status-success: #16A34A;
+  --status-success: #059669;
   --status-pending: #D97706;
   --status-error: #DC2626;
-  --status-info: #2563EB;
+  --status-info: #7C3AED;
 
   /* Shadows */
   --shadow:
-    rgba(23, 37, 84, 0.08) 0 25px 50px -12px, rgba(23, 37, 84, 0.04) 0 12px 24px -8px;
+    rgba(120, 53, 15, 0.08) 0 4px 6px -1px, rgba(120, 53, 15, 0.08) 0 2px 4px -1px;
   --shadow-sm:
-    rgba(23, 37, 84, 0.04) 0 1px 2px 0, rgba(23, 37, 84, 0.04) 0 1px 3px 1px;
+    rgba(120, 53, 15, 0.05) 0 1px 2px 0, rgba(120, 53, 15, 0.05) 0 1px 3px 1px;
+  --shadow-lg:
+    rgba(120, 53, 15, 0.12) 0 10px 15px -3px, rgba(120, 53, 15, 0.08) 0 4px 6px -2px;
 
   /* Typography */
   --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -47,27 +49,6 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary: #1E3A5F;
-    --secondary: #14B8A6;
-    --secondary-hover: #2DD4BF;
-    --background: #0F172A;
-    --surface: #1E293B;
-    --accent: #FBBF24;
-    --text: #94A3B8;
-    --text-h: #F1F5F9;
-    --border: #334155;
-    --code-bg: #1E293B;
-    --accent-bg: rgba(20, 184, 166, 0.15);
-    --accent-border: rgba(20, 184, 166, 0.3);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 25px 50px -12px, rgba(0, 0, 0, 0.25) 0 12px 24px -8px;
-    --shadow-sm:
-      rgba(0, 0, 0, 0.25) 0 1px 2px 0, rgba(0, 0, 0, 0.2) 0 1px 3px 1px;
-  }
-}
-
 body {
   margin: 0;
   min-height: 100vh;
@@ -81,7 +62,7 @@ body {
 
 /* Header styles */
 .header {
-  background: var(--primary);
+  background: linear-gradient(135deg, #FEF3C7 0%, #FFFBEB 100%);
   border-bottom: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
   position: sticky;
@@ -111,7 +92,7 @@ body {
 .logo-text {
   font-size: 20px;
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--secondary);
   letter-spacing: -0.02em;
 }
 
@@ -123,7 +104,7 @@ body {
 
 .user-email {
   font-size: 14px;
-  color: #E2E8F0;
+  color: var(--text);
   font-weight: 500;
 }
 
@@ -138,6 +119,7 @@ body {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .logout-button:hover {
@@ -692,7 +674,7 @@ code {
   width: 250px;
   flex-shrink: 0;
   padding: 24px 16px;
-  background: var(--surface);
+  background: linear-gradient(180deg, #FFFBEB 0%, #FEF3C7 100%);
   border-right: 1px solid var(--border);
   box-sizing: border-box;
 }
@@ -790,7 +772,7 @@ code {
   flex-direction: column;
   gap: 6px;
   padding: 22px;
-  background: var(--surface);
+  background: #FFFFFF;
   border: 1px solid var(--border);
   border-top: 4px solid var(--secondary);
   border-radius: 12px;
@@ -811,6 +793,10 @@ code {
 
 .admin-stat-overdue {
   border-top-color: var(--status-error);
+}
+
+.admin-stat-fines {
+  border-top-color: var(--accent);
 }
 
 .admin-stat-label {
@@ -839,7 +825,7 @@ code {
 
 .admin-panel {
   padding: 22px;
-  background: var(--surface);
+  background: #FFFFFF;
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
@@ -871,7 +857,7 @@ code {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text);
-  background: var(--code-bg);
+  background: #F8FAFC;
 }
 
 .admin-table td {
@@ -967,7 +953,7 @@ code {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  background: var(--surface);
+  background: #FFFFFF;
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
@@ -986,7 +972,7 @@ code {
   font-size: 14px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--background);
+  background: #FEF9C3;
   color: var(--text-h);
   outline: none;
   transition: border-color 0.2s ease;
@@ -1022,7 +1008,7 @@ code {
   font-size: 14px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--background);
+  background: #FEF9C3;
   color: var(--text-h);
   cursor: pointer;
   outline: none;
@@ -1053,7 +1039,7 @@ code {
 
 .admin-btn-secondary {
   color: var(--text-h);
-  background: var(--surface);
+  background: #FFFFFF;
   border: 1px solid var(--border);
 }
 
@@ -1240,6 +1226,10 @@ code {
   border-top-color: var(--status-error);
 }
 
+.admin-stat-fines {
+  border-top-color: var(--accent);
+}
+
 .admin-stat-pending {
   border-top-color: var(--status-pending);
 }
@@ -1293,7 +1283,7 @@ code {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1301,7 +1291,7 @@ code {
 }
 
 .admin-modal {
-  background: var(--surface);
+  background: #FFFFFF;
   border-radius: 12px;
   box-shadow: var(--shadow-lg);
   max-width: 500px;
@@ -1370,7 +1360,7 @@ code {
   font-size: 14px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--background);
+  background: #FEF9C3;
   color: var(--text-h);
   outline: none;
   transition: border-color 0.2s ease;
@@ -1380,6 +1370,7 @@ code {
 .admin-form-group input:focus,
 .admin-form-group textarea:focus {
   border-color: var(--secondary);
+  background: #FFFFFF;
 }
 
 .admin-form-group textarea {
@@ -1454,7 +1445,7 @@ code {
   left: 0;
   right: 0;
   margin-top: 4px;
-  background: var(--surface);
+  background: #FFFFFF;
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: var(--shadow-lg);
@@ -1489,3 +1480,129 @@ code {
   text-align: center;
 }
 /* admin/BookManagement.jsx modal styles end */
+
+/* Librarian Dashboard Quick Actions */
+.admin-quick-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-quick-actions .admin-btn {
+  flex: 1;
+  min-width: 140px;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+}
+
+/* Modal Footer */
+.admin-modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* Form Select Styling */
+.admin-form-group select {
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #FEF9C3;
+  color: var(--text-h);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease;
+  font-family: inherit;
+}
+
+.admin-form-group select:focus {
+  border-color: var(--secondary);
+  background: #FFFFFF;
+}
+
+/* Detail Modal p styling */
+.admin-form-group p {
+  margin: 0;
+  padding: 10px 14px;
+  background: #F8FAFC;
+  border-radius: 8px;
+  color: var(--text-h);
+  font-size: 14px;
+}
+
+/* Return Books Button */
+.admin-btn-return {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--surface);
+  background: var(--status-success);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-btn-return:hover {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+
+/* Issue Books Dropdown Styling */
+.admin-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+  margin-top: 4px;
+}
+
+.admin-dropdown-item {
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-dropdown-item:hover {
+  background: var(--accent-bg);
+}
+
+.admin-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.admin-dropdown-item-title {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.admin-dropdown-item-subtitle {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.admin-dropdown-item-meta {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.admin-dropdown-empty {
+  padding: 14px;
+  color: var(--text);
+  font-size: 14px;
+  text-align: center;
+}
