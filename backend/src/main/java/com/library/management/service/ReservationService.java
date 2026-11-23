@@ -34,7 +34,7 @@ public class ReservationService {
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-                Book book = bookRepository.findById(bookId)
+                Book book = bookRepository.findByIdForUpdate(bookId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
 
                 if (book.getAvailableCopies() > 0) {
@@ -85,6 +85,9 @@ public class ReservationService {
                                 .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Reservation not found"));
 
+                bookRepository.findByIdForUpdate(reservation.getBook().getId())
+                                .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
+
                 if (reservation.getStatus() != ReservationStatus.WAITING) {
                         throw new IllegalStateException(
                                         "Only waiting reservations can be cancelled");
@@ -100,6 +103,11 @@ public class ReservationService {
         @Transactional
         public Optional<ReservationResponseDTO> assignNextReservation(Long bookId) {
 
+                // Lock the book row to prevent simultaneous assignments
+                bookRepository.findByIdForUpdate(bookId)
+                                .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
+
+                // Find the oldest waiting reservation
                 List<Reservation> reservations = reservationRepository.findByBookIdAndStatusOrderByReservationDateAsc(
                                 bookId,
                                 ReservationStatus.WAITING,

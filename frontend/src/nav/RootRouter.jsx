@@ -4,6 +4,11 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/auth/login";
 import Register from "../pages/auth/register";
 import Home from "../pages/member/Home";
+import MemberLayout from "../pages/member/inc/MemberLayout";
+import AllBooks from "../pages/member/AllBooks";
+import BookReservations from "../pages/member/BookReservations";
+import BorrowBooks from "../pages/member/BorrowBooks";
+import MyDueBooks from "../pages/member/MyDueBooks";
 import AdminLayout from "../pages/admin/inc/AdminLayout";
 import AdminDashboard from "../pages/admin/Dashboard";
 import BookManagement from "../pages/admin/BookManagement";
@@ -58,7 +63,14 @@ function RootRouter() {
 
                     {/* Member Routes */}
                     <Route element={<RoleRoute allowedRoles={["MEMBER"]} />}>
-                        <Route path="/member/home" element={<Home />} />
+                        <Route path="/member" element={<MemberLayout />}>
+                            <Route index element={<Navigate to="/member/home" replace />} />
+                            <Route path="home" element={<Home />} />
+                            <Route path="books" element={<AllBooks />} />
+                            <Route path="reservations" element={<BookReservations />} />
+                            <Route path="borrow" element={<BorrowBooks />} />
+                            <Route path="due" element={<MyDueBooks />} />
+                        </Route>
                     </Route>
 
                     {/* Admin Routes */}

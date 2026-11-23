@@ -42,7 +42,7 @@ public class BorrowRecordService {
                 User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-                Book book = bookRepository.findById(bookId)
+                Book book = bookRepository.findByIdForUpdate(bookId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
 
                 boolean alreadyBorrowed = borrowRecordRepository
@@ -51,7 +51,10 @@ public class BorrowRecordService {
                 boolean requestPending = borrowRecordRepository
                                 .existsByUserIdAndBookIdAndStatus(user.getId(), bookId, BorrowStatus.BORROW_PENDING);
 
-                if (alreadyBorrowed || requestPending) {
+                boolean returnPending = borrowRecordRepository
+                                .existsByUserIdAndBookIdAndStatus(user.getId(), bookId, BorrowStatus.RETURN_PENDING);
+
+                if (alreadyBorrowed || requestPending || returnPending) {
                         throw new IllegalStateException(
                                         "You have already borrowed this book or have a pending borrow request");
                 }
@@ -103,7 +106,8 @@ public class BorrowRecordService {
                         throw new IllegalStateException("This borrowing request is not pending");
                 }
 
-                Book book = record.getBook();
+                Book book = bookRepository.findByIdForUpdate(record.getBook().getId())
+                                .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
 
                 Optional<Reservation> readyReservation = reservationRepository
                                 .findByBookIdAndUserIdAndStatus(
@@ -171,7 +175,8 @@ public class BorrowRecordService {
                 record.setReturnDate(LocalDate.now());
                 record.setStatus(BorrowStatus.RETURNED);
 
-                Book book = record.getBook();
+                Book book = bookRepository.findByIdForUpdate(record.getBook().getId())
+                                .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
 
                 // Assign the returned copy to the next waiting member
                 Optional<ReservationResponseDTO> assignedReservation = reservationService
