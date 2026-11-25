@@ -4,6 +4,7 @@ import com.library.management.entity.User;
 import com.library.management.entity.Book;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -14,6 +15,7 @@ import java.time.LocalDate;
 @Table(name = "borrow_records")
 @Getter
 @Setter
+@AllArgsConstructor
 @NoArgsConstructor
 public class BorrowRecord {
 
@@ -37,4 +39,10 @@ public class BorrowRecord {
 
     @Enumerated(EnumType.STRING)
     private BorrowStatus status;
+
+    public static void main(String[] args) {
+        BorrowRecord record = new BorrowRecord(1L, new User(), new Book(), LocalDate.now(),
+                LocalDate.now().plusDays(14), null, BorrowStatus.BORROWED);
+        BorrowRecord record2 = new BorrowRecord();
+    }
 }
